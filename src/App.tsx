@@ -4,7 +4,7 @@
  */
 
 import { useState, createContext, useContext, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Home, Map, User } from 'lucide-react';
 import Login from './pages/Login';
@@ -136,7 +136,7 @@ export default function App() {
 
   return (
     <UserContext.Provider value={{ user, switchRole }}>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route
             path="/login"
@@ -171,7 +171,7 @@ export default function App() {
             }
           />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </UserContext.Provider>
   );
 }
