@@ -1,0 +1,6 @@
+{
+  "name": "吉林农发智慧农业",
+  "description": "掌上农场移动化管理平台，提供土地资源、种植管理、物联网设备监控及数据分析，实现掌上农场高效管理。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
