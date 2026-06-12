@@ -966,18 +966,6 @@ function LeasingDetail({ plot }: { plot: MapPlot }) {
   if (plot.leaseType === '承租') {
     return (
       <div className="space-y-5 pb-8">
-        {/* 地图缩略图 */}
-        <div className="bg-slate-200 rounded-xl h-32 flex items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-[#C4A27C]/15" />
-          <div
-            className="w-3/4 h-3/5 rounded border-2 border-[#C4A27C]/40 bg-[#C4A27C]/20 flex items-center justify-center"
-          >
-            <span className="text-[11px] font-bold text-[#C4A27C]/60">{plot.name}</span>
-          </div>
-          <span className="absolute bottom-2 right-3 text-[9px] text-slate-400">地块范围示意</span>
-        </div>
-
-        {/* 基本信息 */}
         <section>
           <SectionTitle>基本信息</SectionTitle>
           <div className="bg-slate-50 rounded-xl px-4 py-2">
@@ -992,7 +980,6 @@ function LeasingDetail({ plot }: { plot: MapPlot }) {
           </div>
         </section>
 
-        {/* 承包人信息 */}
         <section>
           <SectionTitle>承包人信息</SectionTitle>
           <div className="bg-slate-50 rounded-xl px-4 py-2">
@@ -1002,14 +989,35 @@ function LeasingDetail({ plot }: { plot: MapPlot }) {
             <InfoRow label="承包起止日期" value={plot.contractStartDate && plot.contractEndDate ? `${plot.contractStartDate} ~ ${plot.contractEndDate}` : '--'} />
             <InfoRow label="承包金额" value={plot.contractAmount ? `${plot.contractAmount.toLocaleString()} 元/年` : '--'} />
           </div>
-          <button
-            className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-slate-200 hover:border-[#0D665E] hover:bg-[#E8F4F4] transition-colors active:scale-[0.98]"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-400">
-              <path d="M4 2v12m8-12v12M2 6h12M2 10h12" strokeLinecap="round" />
-            </svg>
-            <span className="text-xs font-bold text-slate-500">合同附件</span>
-          </button>
+        </section>
+
+        {/* 合同附件（模拟） */}
+        <section>
+          <SectionTitle>合同附件</SectionTitle>
+          <div className="bg-amber-50 rounded-xl border border-amber-200 p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-amber-500">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="14 2 14 8 20 8" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="16" y1="13" x2="8" y2="13" strokeLinecap="round" />
+                <line x1="16" y1="17" x2="8" y2="17" strokeLinecap="round" />
+              </svg>
+              <span className="text-[13px] font-bold text-amber-700">土地承包合同</span>
+            </div>
+            <div className="text-[11px] text-amber-600 space-y-1 leading-relaxed">
+              <p>合同编号：HT-{plot.code || 'ZL'}-{plot.contractStartDate?.replace(/-/g, '') || '20260315'}</p>
+              <p>甲方：吉林农发集团（{plot.farm || '—'}）</p>
+              <p>乙方：{plot.contractorName || '—'}（{plot.contractorIdentity || '—'}）</p>
+              <p>承包期限：{plot.contractStartDate || '—'} 至 {plot.contractEndDate || '—'}</p>
+              <p>承包面积：{(plot.inputArea || plot.area).toLocaleString()} ㎡</p>
+              <p>承包金额：{plot.contractAmount ? `${plot.contractAmount.toLocaleString()} 元/年` : '—'}</p>
+              <p>签订日期：{plot.contractStartDate || '—'}</p>
+            </div>
+            <div className="flex items-center gap-2 bg-amber-100/50 rounded-lg px-3 py-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span className="text-[10px] text-amber-500 font-medium">此为模拟合同附件，仅供演示使用，不具备法律效力</span>
+            </div>
+          </div>
         </section>
       </div>
     );
