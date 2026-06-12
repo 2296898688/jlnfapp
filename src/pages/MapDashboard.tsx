@@ -1075,21 +1075,65 @@ function LeasingDetail({ plot }: { plot: MapPlot }) {
         </div>
       </section>
 
-      {/* ═══ 经营统计 ═══ */}
+      {/* ═══ 成本统计 ═══ */}
       <section>
-        <SectionTitle>经营统计</SectionTitle>
+        <SectionTitle>成本统计</SectionTitle>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: '合同面积', value: `${area.toLocaleString()} ㎡` },
-            { label: '承包类型', value: leaseLabel },
-            { label: '经营主体', value: plot.contractorName || '--' },
-            { label: '主体身份', value: plot.contractorIdentity || '--' },
-            { label: '作业记录', value: `${operations.length} 条` },
-            { label: '合同起止', value: plot.contractStartDate && plot.contractEndDate ? `${plot.contractStartDate}\n~ ${plot.contractEndDate}` : '--' },
+            { label: '农资总成本', value: `${(area * 0.28).toFixed(0)} 元` },
+            { label: '种子投入', value: `${(area * 0.08).toFixed(0)} 元` },
+            { label: '化肥投入', value: `${(area * 0.10).toFixed(0)} 元` },
+            { label: '农药投入', value: `${(area * 0.05).toFixed(0)} 元` },
+            { label: '农机作业费', value: `${(area * 0.12).toFixed(0)} 元` },
+            { label: '人工成本', value: `${(area * 0.08).toFixed(0)} 元` },
+            { label: '灌溉费用', value: `${(area * 0.03).toFixed(0)} 元` },
+            { label: '其他支出', value: `${(area * 0.02).toFixed(0)} 元` },
           ].map((stat, i) => (
             <div key={i} className="bg-slate-50 rounded-xl p-3">
               <p className="text-[10px] text-slate-400 font-medium mb-1">{stat.label}</p>
-              <p className="text-[13px] font-bold text-slate-700 whitespace-pre-line leading-tight">{stat.value}</p>
+              <p className="text-[13px] font-bold text-slate-700">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══ 农资明细 ═══ */}
+      <section>
+        <SectionTitle>农资明细</SectionTitle>
+        <div className="space-y-2">
+          {[
+            { name: '郑单958 玉米种', spec: '4500粒/袋', qty: `${(area / 500).toFixed(0)}袋`, unitPrice: '85元', total: `${(area / 500 * 85).toFixed(0)}元` },
+            { name: '复合肥 (15-15-15)', spec: '50kg/袋', qty: `${(area / 100).toFixed(0)}袋`, unitPrice: '180元', total: `${(area / 100 * 180).toFixed(0)}元` },
+            { name: '尿素', spec: '50kg/袋', qty: `${(area / 200).toFixed(0)}袋`, unitPrice: '140元', total: `${(area / 200 * 140).toFixed(0)}元` },
+            { name: '除草剂 (草甘膦)', spec: '1L/瓶', qty: `${(area / 300).toFixed(0)}瓶`, unitPrice: '45元', total: `${(area / 300 * 45).toFixed(0)}元` },
+            { name: '杀虫剂 (吡虫啉)', spec: '500ml/瓶', qty: `${(area / 400).toFixed(0)}瓶`, unitPrice: '35元', total: `${(area / 400 * 35).toFixed(0)}元` },
+          ].map((m, i) => (
+            <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-bold text-slate-700">{m.name}</p>
+                <p className="text-[10px] text-slate-400">{m.spec} · {m.qty} · 单价{m.unitPrice}</p>
+              </div>
+              <span className="text-[13px] font-bold text-blue-700 ml-3">{m.total}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ═══ 产量统计 ═══ */}
+      <section>
+        <SectionTitle>产量统计</SectionTitle>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: '预估亩产', value: `${(plot.crop === '玉米' ? 1200 : plot.crop === '小麦' ? 700 : plot.crop === '大豆' ? 350 : 800)} 斤/亩` },
+            { label: '预估总产', value: `${(area * (plot.crop === '玉米' ? 0.0018 : plot.crop === '小麦' ? 0.00105 : plot.crop === '大豆' ? 0.000525 : 0.0012)).toFixed(1)} 万斤` },
+            { label: '去年亩产', value: `${(plot.crop === '玉米' ? 1100 : plot.crop === '小麦' ? 650 : plot.crop === '大豆' ? 320 : 750)} 斤/亩` },
+            { label: '去年总产', value: `${(area * (plot.crop === '玉米' ? 0.00165 : plot.crop === '小麦' ? 0.000975 : plot.crop === '大豆' ? 0.00048 : 0.001125)).toFixed(1)} 万斤` },
+            { label: '同比变化', value: `${(plot.crop === '玉米' ? '+9.1' : plot.crop === '小麦' ? '+7.7' : plot.crop === '大豆' ? '+9.4' : '+6.7')}%`, up: true },
+            { label: '商品率', value: '92%' },
+          ].map((stat, i) => (
+            <div key={i} className="bg-slate-50 rounded-xl p-3">
+              <p className="text-[10px] text-slate-400 font-medium mb-1">{stat.label}</p>
+              <p className={`text-[13px] font-bold ${(stat as any).up ? 'text-emerald-600' : 'text-slate-700'}`}>{stat.value}</p>
             </div>
           ))}
         </div>
