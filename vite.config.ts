@@ -6,7 +6,7 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     base: './',
-    build: { outDir: 'docs' },
+    build: { outDir: '.', emptyOutDir: false },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
