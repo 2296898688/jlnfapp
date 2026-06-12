@@ -17,7 +17,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import { useUser } from '../App';
-import { mockDevices, mockMapPlots, mockFarms, mockPlotOperations, mockLandAnalysis, mockCropAnalysis } from '../mockData';
+import { mockDevices, mockMapPlots, mockFarms, mockPlotOperations, mockLandAnalysis, mockCropAnalysis, mockLandCompanyAnalysis } from '../mockData';
 import { Device, MapPlot, Farm, UserRole, FieldOperation } from '../types';
 import SatelliteMap from '../components/SatelliteMap';
 import WeatherHeatmap, { WeatherMetric } from '../components/WeatherHeatmap';
@@ -52,9 +52,29 @@ const CROP_LAYER_META: { id: CropLayer; label: string; color: string }[] = [
   { id: '承租', label: '承租地', color: '#C4A27C' },
 ];
 
-/** 根据角色返回初始可见图层（演示模式全部可见） */
-function getDefaultLayers(_role: UserRole): Set<LandLayer> {
+/** 根据角色返回初始可见图层 */
+function getDefaultLayers(role: UserRole): Set<LandLayer> {
+  // 农垦集团不显示高标准农田和盐碱地
+  if (role === 'NONGKEN_ADMIN') {
+    return new Set(['ZONGDI'] as LandLayer[]);
+  }
   return new Set(['ZONGDI', 'HIGH_STANDARD', 'SALINE_ALKALI'] as LandLayer[]);
+}
+
+/** 根据角色返回可用的图层列表 */
+function getAvailableLayers(role: UserRole): { id: LandLayer; label: string; color: string }[] {
+  if (role === 'NONGKEN_ADMIN') {
+    return LAYER_META.filter(l => l.id === 'ZONGDI');
+  }
+  return LAYER_META;
+}
+
+/** 根据角色返回可用的顶部 Tab */
+function getAvailableTabs(role: UserRole): { id: MainTab; label: string }[] {
+  if (role === 'LAND_COMPANY_ADMIN') {
+    return MAIN_TABS.filter(t => t.id !== 'crops');
+  }
+  return MAIN_TABS;
 }
 
 function getDefaultCropLayers(): Set<CropLayer> {
@@ -127,13 +147,15 @@ export default function MapDashboard() {
     setHsRegion(''); setHsRenovation(''); setHsPlanYear('');
     setHsBuildYear(''); setHsName(''); setHsCode('');
     setSaRegion(''); setSaLevel(''); setSaType(''); setSaName(''); setSaCode('');
-    setVisibleLayers(new Set(['ZONGDI', 'HIGH_STANDARD', 'SALINE_ALKALI'] as LandLayer[]));
+    setVisibleLayers(getDefaultLayers(user.role));
     setVisibleCropLayers(getDefaultCropLayers());
     setIotTypeFilter('ALL'); setIotCodeFilter(''); setIotNameFilter('');
   };
 
   // ─── 切换 Tab 时重置面板 ───
   const switchTab = (tab: MainTab) => {
+    // 土地公司无种植分布
+    if (tab === 'crops' && user.role === 'LAND_COMPANY_ADMIN') return;
     setActiveTab(tab);
     setPanelOpen(false);
     setSelectedPlot(null);
@@ -248,7 +270,7 @@ export default function MapDashboard() {
           </button>
           {activeTab === 'land' && (
             <div className="flex items-center gap-1.5 text-[11px] overflow-x-auto scrollbar-none">
-              {LAYER_META.map((l) => (
+              {getAvailableLayers(user.role).map((l) => (
                 <span key={l.id} className="flex items-center gap-0.5 shrink-0" style={{ color: l.color }}>
                   <div className="w-1.5 h-1.5 rounded-sm shrink-0" style={{ backgroundColor: l.color }} />
                   <span className="text-slate-500">{l.label}</span>
@@ -288,7 +310,7 @@ export default function MapDashboard() {
         <SatelliteMap
           plots={mapPlots}
           devices={mapDevices}
-          farms={filteredFarms}
+          farms={filteredFarms.filter(f => f.id !== 'all').length <= 1 ? [] : filteredFarms}
           selectedFarmId={selectedFarm.id}
           onFarmSelect={(farm) => {
             if (farm.id === selectedFarm.id) {
@@ -327,7 +349,7 @@ export default function MapDashboard() {
         {/* 模式切换胶囊 —— 浮在地图上方 */}
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
           <div className="flex bg-white/90 backdrop-blur rounded-full p-1 shadow-lg border border-slate-200/60">
-            {MAIN_TABS.map((tab) => (
+            {getAvailableTabs(user.role).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => { switchTab(tab.id); setShowFilter(false); setShowLayerPanel(false); }}
@@ -347,7 +369,7 @@ export default function MapDashboard() {
         {/* 悬浮按钮 */}
         {!panelOpen && (
           <div className="absolute right-4 top-3 z-20 flex flex-col gap-2">
-            {activeTab !== 'iot' && (
+            {activeTab !== 'iot' && getAvailableLayers(user.role).length > 1 && (
             <button
               onClick={() => { setShowLayerPanel(true); setShowFilter(false); }}
               className={cn(
@@ -603,7 +625,7 @@ export default function MapDashboard() {
               )}
 
               {/* ─── 高标准筛选 ─── */}
-              {activeTab === 'land' && (
+              {activeTab === 'land' && user.role !== 'NONGKEN_ADMIN' && (
                 <section>
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-1 h-4 rounded-full" style={{ backgroundColor: PLOT_COLORS.HIGH_STANDARD }} />
@@ -627,7 +649,7 @@ export default function MapDashboard() {
               )}
 
               {/* ─── 盐碱地筛选 ─── */}
-              {activeTab === 'land' && (
+              {activeTab === 'land' && user.role !== 'NONGKEN_ADMIN' && (
                 <section>
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-1 h-4 rounded-full" style={{ backgroundColor: PLOT_COLORS.SALINE_ALKALI }} />
@@ -728,7 +750,7 @@ export default function MapDashboard() {
               <h3 className="text-[15px] font-bold text-slate-800 px-5 py-3">选择图层</h3>
             <div className="px-5 pb-6 space-y-1">
               {/* 土地资源图层 */}
-              {activeTab === 'land' && LAYER_META.map((l) => (
+              {activeTab === 'land' && getAvailableLayers(user.role).map((l) => (
                 <button
                   key={l.id}
                   onClick={() => toggleLayer(l.id)}
@@ -802,6 +824,7 @@ export default function MapDashboard() {
           统种: farmPlots.filter((p) => p.type === 'LEASING' && p.leaseType === '统种').length,
           承租: farmPlots.filter((p) => p.type === 'LEASING' && p.leaseType === '承租').length,
         }}
+        role={user.role}
       />
     </div>
   );
@@ -1437,17 +1460,24 @@ function DeviceDetail({ device }: { device: Device }) {
 /* ═══════════════════════════════ 底部分析条 ═══════════════════════════════ */
 
 function AnalysisBar({
-  activeTab, layerStats, deviceStats, cropStats,
+  activeTab, layerStats, deviceStats, cropStats, role,
 }: {
   activeTab: string;
   layerStats: Record<string, number>;
   deviceStats: { total: number; online: number; fault: number };
   cropStats: Record<string, number>;
+  role: UserRole;
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  const landSummary = role === 'NONGKEN_ADMIN'
+    ? `${layerStats.ZONGDI} 块宗地`
+    : role === 'LAND_COMPANY_ADMIN'
+    ? `${layerStats.HIGH_STANDARD + layerStats.SALINE_ALKALI} 块地 · ${layerStats.HIGH_STANDARD}高标 ${layerStats.SALINE_ALKALI}盐碱`
+    : `${layerStats.ZONGDI + layerStats.HIGH_STANDARD + layerStats.SALINE_ALKALI} 块地 · ${layerStats.ZONGDI}宗 ${layerStats.HIGH_STANDARD}高标 ${layerStats.SALINE_ALKALI}盐碱`;
+
   const summary = activeTab === 'land'
-    ? `${layerStats.ZONGDI + layerStats.HIGH_STANDARD + layerStats.SALINE_ALKALI} 块地 · ${layerStats.ZONGDI}宗 ${layerStats.HIGH_STANDARD}高标 ${layerStats.SALINE_ALKALI}盐碱`
+    ? landSummary
     : activeTab === 'crops'
     ? `${cropStats['统种'] + cropStats['承租']} 块承包地 · 统种${cropStats['统种']} 承租${cropStats['承租']}`
     : `${deviceStats.total} 台设备 · 在线${deviceStats.online} 离线${deviceStats.total - deviceStats.online - deviceStats.fault} 故障${deviceStats.fault}`;
@@ -1497,7 +1527,7 @@ function AnalysisBar({
                 <button onClick={() => setExpanded(false)} className="text-xs text-slate-400 font-medium">收起</button>
               </div>
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 pb-8">
-                {activeTab === 'land' && <LandAnalysis />}
+                {activeTab === 'land' && (role === 'LAND_COMPANY_ADMIN' ? <LandCompanyAnalysis /> : <LandAnalysis />)}
                 {activeTab === 'crops' && <CropAnalysis />}
                 {activeTab === 'iot' && (
                   <>
@@ -1685,6 +1715,91 @@ function LandAnalysis() {
                   <span className="text-[9px] font-bold text-white">{r.pct}%</span>
                 </div>
               </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════ 土地资源公司分析 ═══════════════════════════════ */
+
+function LandCompanyAnalysis() {
+  const d = mockLandCompanyAnalysis;
+  return (
+    <div className="space-y-4">
+      {/* 高标准农田 */}
+      <section className="bg-slate-50 rounded-2xl p-5">
+        <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">高标准农田</h4>
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="bg-white rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-[#2D9F7A]">{d.totalHighStandard.toLocaleString()}</p>
+            <p className="text-[10px] text-slate-400">总面积（亩）</p>
+          </div>
+          <div className="bg-white rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-[#2D9F7A]">{d.highStandardByFarm.length}</p>
+            <p className="text-[10px] text-slate-400">覆盖农场</p>
+          </div>
+          <div className="bg-white rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-[#2D9F7A]">{d.highStandardByFarm.reduce((s, f) => s + f.plots, 0)}</p>
+            <p className="text-[10px] text-slate-400">地块数</p>
+          </div>
+        </div>
+        <p className="text-[11px] text-slate-400 font-medium mb-2">各农场面积</p>
+        <div className="space-y-2">
+          {d.highStandardByFarm.map((item) => (
+            <div key={item.farm} className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-600 w-16 shrink-0 truncate">{item.farm}</span>
+              <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${(item.area / d.totalHighStandard) * 100}%`, backgroundColor: item.color }} />
+              </div>
+              <span className="text-[11px] font-semibold text-slate-700 w-18 text-right shrink-0">{item.area.toLocaleString()}亩</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 盐碱地 */}
+      <section className="bg-slate-50 rounded-2xl p-5">
+        <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">盐碱地</h4>
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="bg-white rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-[#E8A838]">{d.totalSaline.toLocaleString()}</p>
+            <p className="text-[10px] text-slate-400">总面积（亩）</p>
+          </div>
+          <div className="bg-white rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-[#E8A838]">{d.salineByLevel.length}</p>
+            <p className="text-[10px] text-slate-400">等级分类</p>
+          </div>
+          <div className="bg-white rounded-xl p-3 text-center">
+            <p className="text-lg font-bold text-[#E8A838]">{d.salineByType.length}</p>
+            <p className="text-[10px] text-slate-400">土壤类型</p>
+          </div>
+        </div>
+        {/* 等级分布 */}
+        <p className="text-[11px] text-slate-400 font-medium mb-2">等级分布</p>
+        <div className="space-y-2 mb-4">
+          {d.salineByLevel.map((item) => (
+            <div key={item.level} className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-600 w-8 shrink-0">{item.level}</span>
+              <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${(item.area / d.totalSaline) * 100}%`, backgroundColor: item.color }} />
+              </div>
+              <span className="text-[11px] font-semibold text-slate-700 w-18 text-right shrink-0">{item.area.toLocaleString()}亩</span>
+            </div>
+          ))}
+        </div>
+        {/* 类型分布 */}
+        <p className="text-[11px] text-slate-400 font-medium mb-2">类型分布</p>
+        <div className="space-y-2">
+          {d.salineByType.map((item) => (
+            <div key={item.type} className="flex items-center gap-2">
+              <span className="text-[11px] text-slate-600 w-20 shrink-0 truncate">{item.type}</span>
+              <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${(item.area / d.totalSaline) * 100}%`, backgroundColor: item.color }} />
+              </div>
+              <span className="text-[11px] font-semibold text-slate-700 w-18 text-right shrink-0">{item.area.toLocaleString()}亩</span>
             </div>
           ))}
         </div>

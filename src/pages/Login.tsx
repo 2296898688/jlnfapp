@@ -19,6 +19,22 @@ const DEMO_ACCOUNTS = [
     color: 'blue',
   },
   {
+    key: 'nongken',
+    username: 'nongken',
+    label: '农垦集团管理',
+    desc: '农垦集团视角 · 宗地管理',
+    icon: Building2,
+    color: 'teal',
+  },
+  {
+    key: 'land',
+    username: 'land',
+    label: '土地资源公司',
+    desc: '土地资源公司视角 · 全部板块',
+    icon: Building2,
+    color: 'sky',
+  },
+  {
     key: 'farm',
     username: 'farm',
     label: '白城牧场管理员',
@@ -45,7 +61,7 @@ export default function Login({ onLogin }: LoginProps) {
     setError('');
 
     setTimeout(() => {
-      if ((username === 'admin' || username === 'farm' || username === 'operator') && password === '123456') {
+      if ((username === 'admin' || username === 'farm' || username === 'operator' || username === 'nongken' || username === 'land') && password === '123456') {
         localStorage.setItem('isLoggedIn', 'true');
         onLogin(username);
       } else {
@@ -173,6 +189,10 @@ export default function Login({ onLogin }: LoginProps) {
                       ? 'bg-indigo-50/50 border-indigo-100 active:ring-indigo-300 hover:bg-indigo-50'
                       : account.color === 'blue'
                       ? 'bg-blue-50/50 border-blue-100 active:ring-blue-300 hover:bg-blue-50'
+                      : account.color === 'teal'
+                      ? 'bg-teal-50/50 border-teal-100 active:ring-teal-300 hover:bg-teal-50'
+                      : account.color === 'sky'
+                      ? 'bg-sky-50/50 border-sky-100 active:ring-sky-300 hover:bg-sky-50'
                       : 'bg-amber-50/50 border-amber-100 active:ring-amber-300 hover:bg-amber-50'
                   )}
                 >
@@ -183,6 +203,10 @@ export default function Login({ onLogin }: LoginProps) {
                         ? 'bg-indigo-100 text-indigo-600'
                         : account.color === 'blue'
                         ? 'bg-blue-100 text-blue-600'
+                        : account.color === 'teal'
+                        ? 'bg-teal-100 text-teal-600'
+                        : account.color === 'sky'
+                        ? 'bg-sky-100 text-sky-600'
                         : 'bg-amber-100 text-amber-600'
                     )}
                   >

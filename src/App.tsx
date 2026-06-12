@@ -6,7 +6,7 @@
 import { useState, createContext, useContext, type ReactNode } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Home, Map, User } from 'lucide-react';
+import { Home, Map, User, Users } from 'lucide-react';
 import Login from './pages/Login';
 import HomePage from './pages/Dashboard';
 import Planting from './pages/Planting';
@@ -42,10 +42,13 @@ export function useUser() {
 function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useUser();
+  const isGroupRole = user.role === 'GROUP_ADMIN' || user.role === 'NONGKEN_ADMIN' || user.role === 'LAND_COMPANY_ADMIN';
 
   const tabs = [
     { path: '/home', icon: Home, label: '首页' },
     { path: '/land', icon: Map, label: '土地资源' },
+    ...(isGroupRole ? [{ path: '/planting?tab=personnel', icon: Users, label: '人员档案' }] : []),
     { path: '/profile', icon: User, label: '我的' },
   ];
 
@@ -53,9 +56,11 @@ function Navigation() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 pb-safe z-50">
-      <div className="flex justify-between items-center h-20 px-6 max-w-lg mx-auto">
+      <div className="flex justify-around items-center h-20 px-2 max-w-lg mx-auto">
         {tabs.map((tab) => {
-          const isActive = location.pathname.startsWith(tab.path);
+          const isActive = tab.path.includes('planting')
+            ? location.pathname.includes('planting') && location.search.includes('personnel')
+            : location.pathname.startsWith(tab.path);
           return (
             <motion.a
               key={tab.path}

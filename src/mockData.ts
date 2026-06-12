@@ -11,6 +11,24 @@ export const DEMO_USERS: Record<string, User> = {
     orgFilter: undefined,
     avatar: '',
   },
+  nongken: {
+    id: 'u-nongken',
+    username: 'nongken',
+    realName: '农垦集团管理',
+    role: 'NONGKEN_ADMIN',
+    orgName: '吉林农垦集团',
+    orgFilter: undefined,
+    avatar: '',
+  },
+  land: {
+    id: 'u-land',
+    username: 'land',
+    realName: '土地资源公司',
+    role: 'LAND_COMPANY_ADMIN',
+    orgName: '吉林土地发展公司',
+    orgFilter: undefined,
+    avatar: '',
+  },
   farm: {
     id: 'u-farm',
     username: 'farm',
@@ -52,6 +70,18 @@ export const ROLE_TODOS: Record<string, TodoItem[]> = {
     { id: 'op3', title: '气象站 P-01 风速计数据中断，需前往清理堵塞物', type: 'TASK', status: 'PENDING', createTime: '2024-05-20 11:30' },
     { id: 'op4', title: '墒情站 S-07 电池电量低于 10%，请安排更换', type: 'TASK', status: 'PENDING', createTime: '2024-05-20 13:20' },
   ],
+  NONGKEN_ADMIN: [
+    { id: 'nk1', title: '白城牧场：宗地确权进度需关注，3块宗地待办', type: 'TASK', status: 'PENDING', createTime: '2024-05-20 09:12' },
+    { id: 'nk2', title: '镇南种羊场：承租合同即将到期，请及时续签', type: 'APPROVAL', status: 'PENDING', createTime: '2024-05-20 10:45' },
+    { id: 'nk3', title: '长岭种马场：土壤墒情站 M-02 数据异常波动', type: 'TASK', status: 'PENDING', createTime: '2024-05-20 11:30' },
+    { id: 'nk4', title: '白城牧场：本月土地利用率统计报告已生成', type: 'REPORT', status: 'COMPLETED', createTime: '2024-05-20 13:20' },
+  ],
+  LAND_COMPANY_ADMIN: [
+    { id: 'lc1', title: '白城牧场：智能水阀 B-12 离线预警，需关注通讯模块', type: 'TASK', status: 'PENDING', createTime: '2024-05-20 09:12' },
+    { id: 'lc2', title: '镇南种羊场：高标准农田建设进度更新', type: 'APPROVAL', status: 'PENDING', createTime: '2024-05-20 10:45' },
+    { id: 'lc3', title: '长岭种马场：盐碱地改良项目阶段验收报告', type: 'REPORT', status: 'PENDING', createTime: '2024-05-20 11:30' },
+    { id: 'lc4', title: '白城牧场：自动气象站 P-01 风速计堵塞，建议清理', type: 'TASK', status: 'PENDING', createTime: '2024-05-20 13:20' },
+  ],
 };
 
 // ─── 角色专属 KPI 数据 ───
@@ -73,6 +103,18 @@ export const ROLE_KPIS: Record<string, { label: string; value: string; sub: stri
     { label: '今日任务', value: '3项', sub: '追肥 / 除草 / 巡检', color: 'emerald' },
     { label: '本周完成', value: '8项', sub: '完成率 89%', color: 'amber' },
     { label: '负责设备', value: '24台', sub: '在线 23 / 故障 1', color: 'blue' },
+  ],
+  NONGKEN_ADMIN: [
+    { label: '全集团宗地', value: '12块', sub: '总面积 30.8万亩', color: 'indigo' },
+    { label: '在田作物', value: '12类', sub: '覆盖 4 个农场', color: 'emerald' },
+    { label: '本月产值', value: '1,286万', sub: '较上月+8.3%', color: 'amber' },
+    { label: '设备在线率', value: '94.8%', sub: '故障 15 台', color: 'blue' },
+  ],
+  LAND_COMPANY_ADMIN: [
+    { label: '全集团总面积', value: '30.8万', sub: '较去年+2.1%', color: 'indigo' },
+    { label: '在田作物', value: '12类', sub: '覆盖 4 个农场', color: 'emerald' },
+    { label: '本月产值', value: '1,286万', sub: '较上月+8.3%', color: 'amber' },
+    { label: '设备在线率', value: '94.8%', sub: '故障 15 台', color: 'blue' },
   ],
 };
 
@@ -268,6 +310,30 @@ export const mockLandAnalysis = {
     { region: '四平市', pct: 35.2 },
     { region: '通化市', pct: 28.8 },
   ],
+};
+
+/** 土地资源公司专属分析数据 */
+export const mockLandCompanyAnalysis = {
+  // 高标准农田各农场面积（亩）
+  highStandardByFarm: [
+    { farm: '白城牧场', area: 5684, plots: 2, color: '#0D665E' },
+    { farm: '镇南种羊场', area: 3201, plots: 1, color: '#2D9F7A' },
+    { farm: '长岭种马场', area: 4641, plots: 2, color: '#4B7B73' },
+  ],
+  // 盐碱地等级分布
+  salineByLevel: [
+    { level: '轻度', area: 2563, plots: 1, color: '#E8A838' },
+    { level: '中度', area: 7301, plots: 2, color: '#D97706' },
+    { level: '重度', area: 4111, plots: 2, color: '#DC2626' },
+  ],
+  // 盐碱地类型分布
+  salineByType: [
+    { type: '苏打盐碱地', area: 7394, plots: 3, color: '#E8A838' },
+    { type: '氯化物盐碱地', area: 6581, plots: 2, color: '#7C3AED' },
+  ],
+  // 汇总
+  totalHighStandard: 13526,   // 亩
+  totalSaline: 13975,         // 亩
 };
 
 export const mockDevices: Device[] = [

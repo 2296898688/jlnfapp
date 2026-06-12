@@ -16,6 +16,8 @@ const ROLE_META: Record<UserRole, { icon: typeof Building2; label: string; color
   GROUP_ADMIN: { icon: Building2, label: '集团管理员', color: 'indigo' },
   FARM_ADMIN: { icon: Warehouse, label: '农场管理员', color: 'emerald' },
   OPERATOR: { icon: HardHat, label: '一线操作员', color: 'amber' },
+  NONGKEN_ADMIN: { icon: Building2, label: '农垦集团管理', color: 'teal' },
+  LAND_COMPANY_ADMIN: { icon: Building2, label: '土地资源公司', color: 'sky' },
 };
 
 export default function Profile({ onLogout }: { onLogout: () => void }) {
@@ -41,7 +43,7 @@ export default function Profile({ onLogout }: { onLogout: () => void }) {
       {/* Profile Header */}
       <div className={cn(
         "pt-20 pb-16 px-6 relative overflow-hidden",
-        roleMeta.color === 'indigo' ? 'bg-indigo-900' : roleMeta.color === 'emerald' ? 'bg-slate-900' : 'bg-amber-900'
+        roleMeta.color === 'indigo' ? 'bg-indigo-900' : roleMeta.color === 'emerald' ? 'bg-slate-900' : roleMeta.color === 'teal' ? 'bg-teal-900' : roleMeta.color === 'sky' ? 'bg-sky-900' : 'bg-amber-900'
       )}>
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
         <div className="relative z-10 flex flex-col items-center">
@@ -77,6 +79,8 @@ export default function Profile({ onLogout }: { onLogout: () => void }) {
               'w-11 h-11 rounded-2xl flex items-center justify-center',
               roleMeta.color === 'indigo' ? 'bg-indigo-50 text-indigo-500' :
               roleMeta.color === 'emerald' ? 'bg-emerald-50 text-emerald-500' :
+              roleMeta.color === 'teal' ? 'bg-teal-50 text-teal-500' :
+              roleMeta.color === 'sky' ? 'bg-sky-50 text-sky-500' :
               'bg-amber-50 text-amber-500'
             )}>
               <RefreshCw size={22} />
@@ -88,6 +92,8 @@ export default function Profile({ onLogout }: { onLogout: () => void }) {
                   'font-bold',
                   roleMeta.color === 'indigo' ? 'text-indigo-500' :
                   roleMeta.color === 'emerald' ? 'text-emerald-500' :
+                  roleMeta.color === 'teal' ? 'text-teal-500' :
+                  roleMeta.color === 'sky' ? 'text-sky-500' :
                   'text-amber-500'
                 )}>{roleMeta.label}</span>
               </p>

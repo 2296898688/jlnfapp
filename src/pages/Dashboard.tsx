@@ -15,7 +15,6 @@ import {
   Package,
   Satellite,
   TrendingUp,
-  UserCircle,
   Wind,
   Droplets,
   Play,
@@ -23,7 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useUser } from '../App';
-import { ROLE_TODOS, mockWeather } from '../mockData';
+import { ROLE_TODOS, ROLE_KPIS, mockWeather, mockLandAnalysis, mockCropAnalysis } from '../mockData';
 import { NEWS_LIST, VIDEO_LIST, CONTENT_CATEGORIES, BANNERS } from '../constants';
 
 /* ═══════════════════════════════ 统一内容卡片 ═══════════════════════════════ */
@@ -92,6 +91,21 @@ export default function Home() {
   const [alertIdx, setAlertIdx] = useState(0);
 
   const todos = ROLE_TODOS[user.role] || ROLE_TODOS.FARM_ADMIN;
+  const isGroupRole = user.role === 'NONGKEN_ADMIN';
+  const isGroupAdmin = user.role === 'GROUP_ADMIN';
+  const isLandCompany = user.role === 'LAND_COMPANY_ADMIN';
+
+  // 集团角色 KPI 数据
+  const kpiItems: { label: string; value: string; unit: string; sub: string; color: string; trend?: 'up'; progress?: number }[] = isGroupRole
+    ? [
+        { label: '全集团总面积', value: '30.8万', unit: '亩', sub: '较去年 +2.1%', trend: 'up' as const, color: '#0D665E' },
+        { label: '本月产值', value: '1,286', unit: '万元', sub: '较上月 +8.3%', trend: 'up' as const, color: '#2563EB' },
+        { label: '在田作物', value: '12', unit: '类', sub: '覆盖 4 个农场', color: '#7C3AED' },
+        { label: '设备在线率', value: '94.8', unit: '%', sub: '故障 15 台', color: '#059669', progress: 94.8 },
+        { label: '种植总进度', value: '55', unit: '%', sub: '春播阶段', color: '#D97706', progress: 55 },
+        { label: '确权完成率', value: '13.8', unit: '%', sub: `已确权 ${mockLandAnalysis.confirmedArea} 万亩`, color: '#DC2626', progress: 13.8 },
+      ]
+    : [];
 
   useEffect(() => {
     const t = setInterval(() => setCurrentBanner((prev) => (prev + 1) % BANNERS.length), 5000);
@@ -237,32 +251,114 @@ export default function Home() {
         </button>
       </div>
 
-      {/* ═══════ 5. 快捷入口 ═══════ */}
-      <div className="px-5 mt-6">
-        <div className="bg-white rounded-2xl px-2 py-5 grid grid-cols-4 shadow-sm">
-          {[
-            { label: '种植规划', icon: BookOpen, onClick: () => navigate('/planting?tab=plan') },
-            { label: '作业填报', icon: FileEdit, onClick: () => navigate('/planting?tab=report') },
-            { label: '作业投入', icon: Package, onClick: () => navigate('/planting?tab=input') },
-            { label: '农艺配方', icon: FlaskConical, onClick: () => navigate('/planting?tab=recipe') },
-            { label: '产量预估', icon: TrendingUp, onClick: () => navigate('/planting?tab=estimate') },
-            { label: '产量上报', icon: LineChart, onClick: () => navigate('/planting?tab=yield') },
-            { label: '农情报告', icon: Satellite, onClick: () => navigate('/planting?tab=agrireport') },
-            ...(user.role === 'GROUP_ADMIN' ? [{ label: '人员档案', icon: UserCircle, onClick: () => navigate('/planting?tab=personnel') }] : []),
-          ].map((item, i) => (
-            <button
-              key={i}
-              onClick={item.onClick}
-              className="flex flex-col items-center gap-2.5 active:scale-95 transition-transform"
-            >
-              <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
-                <item.icon size={22} className="text-slate-600" strokeWidth={1.5} />
+      {/* ═══════ 5. 集团 KPI 卡片 ═══════ */}
+      {isGroupRole && (
+        <div className="mt-4">
+          <div className="flex gap-2.5 overflow-x-auto px-5 no-scrollbar snap-x">
+            {kpiItems.map((kpi, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-50 shrink-0 w-[148px] snap-start flex flex-col"
+              >
+                {/* 顶部：彩色圆点 + 标签 */}
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: kpi.color }} />
+                  <span className="text-[11px] text-slate-500 font-medium truncate">{kpi.label}</span>
+                </div>
+                {/* 中部：数值 */}
+                <div className="flex items-baseline gap-0.5 mb-2">
+                  <span className="text-[26px] font-extrabold text-slate-800 leading-none tracking-tight">{kpi.value}</span>
+                  <span className="text-[11px] text-slate-400 font-medium">{kpi.unit}</span>
+                </div>
+                {/* 底部：趋势或进度 */}
+                <div className="mt-auto">
+                  {kpi.progress !== undefined ? (
+                    <>
+                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${kpi.progress}%`, backgroundColor: kpi.color }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 mt-1 block truncate">{kpi.sub}</span>
+                    </>
+                  ) : kpi.trend === 'up' ? (
+                    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600">
+                      <TrendingUp size={10} /> {kpi.sub}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 truncate block">{kpi.sub}</span>
+                  )}
+                </div>
               </div>
-              <span className="text-[11px] font-medium text-slate-600">{item.label}</span>
-            </button>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ═══════ 6. 快捷入口 ═══════ */}
+      {isGroupAdmin && (
+        <div className="px-5 mt-4 space-y-2.5">
+          <button
+            onClick={() => navigate('/planting?tab=agrireport')}
+            className="w-full bg-white rounded-2xl p-4 shadow-sm border border-slate-50 flex items-center gap-4 active:scale-[0.99] transition-transform"
+          >
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#0D665E14' }}>
+              <Satellite size={22} style={{ color: '#0D665E' }} strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-[14px] font-bold text-slate-800">农情报告</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">遥感监测 · 气象专报 · 决策支持</p>
+            </div>
+            <ChevronRight size={18} className="text-slate-300 shrink-0" />
+          </button>
+        </div>
+      )}
+
+      {isGroupRole && (
+        <div className="px-5 mt-4">
+          <button
+            onClick={() => navigate('/planting?tab=agrireport')}
+            className="w-full bg-white rounded-2xl p-4 shadow-sm border border-slate-50 flex items-center gap-4 active:scale-[0.99] transition-transform"
+          >
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#0D665E14' }}>
+              <Satellite size={22} style={{ color: '#0D665E' }} strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-[14px] font-bold text-slate-800">农情报告</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">遥感监测 · 气象专报 · 决策支持</p>
+            </div>
+            <ChevronRight size={18} className="text-slate-300 shrink-0" />
+          </button>
+        </div>
+      )}
+
+      {!isGroupAdmin && !isGroupRole && !isLandCompany && (
+        <div className="px-5 mt-5">
+          <div className="bg-white rounded-2xl shadow-sm px-2 py-5 grid grid-cols-4">
+            {[
+              { label: '种植规划', icon: BookOpen, onClick: () => navigate('/planting?tab=plan') },
+              { label: '作业填报', icon: FileEdit, onClick: () => navigate('/planting?tab=report') },
+              { label: '作业投入', icon: Package, onClick: () => navigate('/planting?tab=input') },
+              { label: '农艺配方', icon: FlaskConical, onClick: () => navigate('/planting?tab=recipe') },
+              { label: '产量预估', icon: TrendingUp, onClick: () => navigate('/planting?tab=estimate') },
+              { label: '产量上报', icon: LineChart, onClick: () => navigate('/planting?tab=yield') },
+              { label: '农情报告', icon: Satellite, onClick: () => navigate('/planting?tab=agrireport') },
+            ].map((item, i) => (
+              <button
+                key={i}
+                onClick={item.onClick}
+                className="flex flex-col items-center gap-2.5 active:scale-95 transition-transform"
+              >
+                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+                  <item.icon size={22} className="text-slate-600" strokeWidth={1.5} />
+                </div>
+                <span className="text-[11px] font-medium text-slate-600">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ═══════ 6. 每日资讯 ═══════ */}
       <div className="mt-6 space-y-4">

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type UserRole = 'GROUP_ADMIN' | 'FARM_ADMIN' | 'OPERATOR';
+export type UserRole = 'GROUP_ADMIN' | 'FARM_ADMIN' | 'OPERATOR' | 'NONGKEN_ADMIN' | 'LAND_COMPANY_ADMIN';
 
 export interface User {
   id: string;
