@@ -991,10 +991,13 @@ function LeasingDetail({ plot }: { plot: MapPlot }) {
           </div>
         </section>
 
-        {/* 合同附件（模拟） */}
+        {/* 合同附件（点击查看） */}
         <section>
           <SectionTitle>合同附件</SectionTitle>
-          <div className="bg-amber-50 rounded-xl border border-amber-200 p-4 space-y-3">
+          <button
+            onClick={() => { const el = document.getElementById(`contract-${plot.id}`); if (el) el.classList.toggle('hidden'); }}
+            className="w-full bg-amber-50 rounded-xl border border-amber-200 p-4 flex items-center justify-between active:bg-amber-100 transition-colors"
+          >
             <div className="flex items-center gap-2">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-amber-500">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeLinecap="round" strokeLinejoin="round" />
@@ -1004,6 +1007,9 @@ function LeasingDetail({ plot }: { plot: MapPlot }) {
               </svg>
               <span className="text-[13px] font-bold text-amber-700">土地承包合同</span>
             </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div id={`contract-${plot.id}`} className="hidden mt-2 bg-amber-50 rounded-xl border border-amber-200 p-4 space-y-3">
             <div className="text-[11px] text-amber-600 space-y-1 leading-relaxed">
               <p>合同编号：HT-{plot.code || 'ZL'}-{plot.contractStartDate?.replace(/-/g, '') || '20260315'}</p>
               <p>甲方：吉林农发集团（{plot.farm || '—'}）</p>
