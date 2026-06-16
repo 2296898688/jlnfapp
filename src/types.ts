@@ -33,7 +33,7 @@ export interface LandStat {
 export interface Device {
   id: string;
   name: string;
-  type: 'SOIL_SENSOR' | 'WEATHER_STATION' | 'SOIL_MOISTURE' | 'CAMERA' | 'SPORE_TRAP' | 'PEST_MONITOR' | 'FERTIGATION' | 'HIGH_STANDARD';
+  type: 'SOIL_SENSOR' | 'WEATHER_STATION' | 'SOIL_MOISTURE' | 'CAMERA' | 'SPORE_TRAP' | 'PEST_MONITOR' | 'FERTIGATION' | 'CONTROLLER' | 'SMART_VALVE';
   status: 'ONLINE' | 'OFFLINE' | 'FAULT';
   location: { lat: number; lng: number };
   lastData: Record<string, number | string>;
@@ -238,4 +238,7 @@ export interface FieldOperation {
   detail?: string;
   crop?: string;
   variety?: string;
+  area?: number;
+  operator?: string;
+  machinery?: string;
 }

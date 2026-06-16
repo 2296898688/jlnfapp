@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { useUser } from '../App';
+import { useUser } from '../UserContext';
 import { DEMO_USERS } from '../mockData';
 import { User, FileText, Info, LogOut, ChevronRight, Building2, Warehouse, HardHat, Check, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -39,7 +39,7 @@ export default function Profile({ onLogout }: { onLogout: () => void }) {
   ];
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto pb-28 bg-slate-50">
+    <div className="flex flex-col h-full overflow-y-auto pb-20 bg-slate-50">
       {/* Profile Header */}
       <div className={cn(
         "pt-20 pb-16 px-6 relative overflow-hidden",
@@ -49,9 +49,9 @@ export default function Profile({ onLogout }: { onLogout: () => void }) {
         <div className="relative z-10 flex flex-col items-center">
           <div className="relative">
             {user.avatar ? (
-              <img src={user.avatar} alt="avatar" className="w-24 h-24 rounded-[32px] border-4 border-white/10 shadow-2xl object-cover" />
+              <img src={user.avatar} alt="avatar" className="w-24 h-24 rounded-2xl border-4 border-white/10 shadow-2xl object-cover" />
             ) : (
-              <div className="w-24 h-24 rounded-[32px] border-4 border-white/10 shadow-2xl flex items-center justify-center bg-white/10">
+              <div className="w-24 h-24 rounded-2xl border-4 border-white/10 shadow-2xl flex items-center justify-center bg-white/10">
                 <span className="text-white font-bold text-2xl">{user.realName.slice(0, 2)}</span>
               </div>
             )}
@@ -70,7 +70,7 @@ export default function Profile({ onLogout }: { onLogout: () => void }) {
 
       <div className="p-5 space-y-6 -mt-8 relative z-20">
         {/* ─── 演示角色切换器 ─── */}
-        <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
           <button
             onClick={() => setShowSwitcher(!showSwitcher)}
             className="w-full px-6 py-5 flex items-center gap-4 transition-all active:bg-slate-50"
@@ -163,7 +163,7 @@ export default function Profile({ onLogout }: { onLogout: () => void }) {
         </div>
 
         {/* 常规菜单 */}
-        <div className="bg-white rounded-[32px] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
           {sections.map((section, idx) => (
             <button
               key={idx}

@@ -219,7 +219,7 @@ export const DataInsightPanel: React.FC<DataInsightPanelProps> = ({ activeTab })
           height: isExpanded ? '440px' : '64px',
         }}
         className={cn(
-          "w-full max-w-lg mx-auto bg-slate-900/80 backdrop-blur-3xl rounded-[32px] border border-white/10 shadow-2xl pointer-events-auto transition-colors",
+          "w-full max-w-lg mx-auto bg-slate-900/80 backdrop-blur-3xl rounded-2xl border border-white/10 shadow-2xl pointer-events-auto transition-colors",
           isExpanded ? "bg-slate-900/90" : "hover:bg-slate-900/70"
         )}
       >

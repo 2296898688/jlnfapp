@@ -47,25 +47,23 @@ export default function Notifications() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
-      <header className="bg-white border-b border-slate-100 flex items-center justify-between px-6 py-4 sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-1 active:bg-slate-50 rounded-lg">
-            <ArrowLeft size={20} className="text-slate-400" />
+    <div className="flex flex-col min-h-screen bg-slate-50 pb-20">
+      <div className="px-5 pt-5">
+        <div className="flex items-start justify-between">
+          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-slate-500" />
           </button>
-          <div>
-            <h1 className="text-[17px] font-bold text-slate-800">消息通知</h1>
-            <p className="text-[10px] text-slate-400 font-medium">{unreadCount} 条未读</p>
-          </div>
+          {unreadCount > 0 && (
+            <button onClick={markAllRead} className="flex items-center gap-1 text-[11px] font-bold text-blue-600 active:text-blue-800 py-2">
+              <CheckCheck size={14} /> 全部已读
+            </button>
+          )}
         </div>
-        {unreadCount > 0 && (
-          <button onClick={markAllRead} className="flex items-center gap-1 text-[11px] font-bold text-blue-600 active:text-blue-800">
-            <CheckCheck size={14} /> 全部已读
-          </button>
-        )}
-      </header>
+        <h1 className="text-xl font-bold text-slate-800 tracking-tight mt-3">消息通知</h1>
+        <p className="text-[11px] text-slate-400 font-medium mt-0.5">{unreadCount} 条未读</p>
+      </div>
 
-      <div className="flex-1 p-4 space-y-2">
+      <div className="flex-1 px-5 mt-4 space-y-2">
         {notifs.map(n => (
           <button
             key={n.id}

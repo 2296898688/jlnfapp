@@ -71,7 +71,7 @@ export const DeviceDetailDrawer: React.FC<DeviceDetailDrawerProps> = ({ device, 
             <div className="w-1 h-4 bg-blue-500 rounded-full" />
             <h3 className="text-[15px] font-black text-slate-800">实时监测数据</h3>
           </div>
-          <div className="bg-white border border-slate-200 rounded-[24px] p-6 grid grid-cols-2 gap-y-4 gap-x-8 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 grid grid-cols-2 gap-y-4 gap-x-8 shadow-sm">
             {[
               { label: '温度', value: device.lastData.temp, unit: '℃', color: 'text-blue-600' },
               { label: '温度', value: device.lastData.temp, unit: '℃', color: 'text-blue-600' }, // Doubled in UI for some reason?

@@ -147,6 +147,9 @@ export const mockFarms: Farm[] = [
   { id: 'f1', name: '白城牧场', totalArea: '12.5万亩', location: '吉林省·白城市', center: { lat: 45.542, lng: 122.758 } },
   { id: 'f2', name: '镇南种羊场', totalArea: '8.2万亩', location: '吉林省·白城市', center: { lat: 45.530, lng: 122.788 } },
   { id: 'f3', name: '长岭种马场', totalArea: '10.1万亩', location: '吉林省·白城市', center: { lat: 45.520, lng: 122.755 } },
+  { id: 'f4', name: '洮南农场', totalArea: '6.8万亩', location: '吉林省·白城市', center: { lat: 45.552, lng: 122.810 } },
+  { id: 'f5', name: '大安农场', totalArea: '7.5万亩', location: '吉林省·白城市', center: { lat: 45.548, lng: 122.720 } },
+  { id: 'f6', name: '通榆农场', totalArea: '9.2万亩', location: '吉林省·白城市', center: { lat: 45.510, lng: 122.800 } },
 ];
 
 export const mockWeather = {
@@ -356,7 +359,7 @@ export const mockDevices: Device[] = [
     alarms: []
   },
   {
-    id: 'dev5', name: '智能水阀 B-12', type: 'SOIL_SENSOR', status: 'OFFLINE',
+    id: 'dev5', name: '智能水阀 B-12', type: 'SMART_VALVE', status: 'OFFLINE',
     location: { lat: 45.547, lng: 122.758 },
     lastData: {},
     deviceInfo: { type: '智能水阀', name: '智能水阀 B-12', farm: '白城牧场', adminRegion: '吉林省-白城市-洮北区', manufacturer: '灌溉科技', model: 'IV-300', remoteControlSupported: true },
@@ -379,7 +382,7 @@ export const mockDevices: Device[] = [
     alarms: [{ id: 'al6', content: '传感器电量低于10%', time: '2026-10-09', level: 'MEDIUM' }]
   },
   {
-    id: 'dev7', name: '智能控制终端 Z-3', type: 'HIGH_STANDARD', status: 'FAULT',
+    id: 'dev7', name: '智能控制终端 Z-3', type: 'CONTROLLER', status: 'FAULT',
     location: { lat: 45.528, lng: 122.790 },
     lastData: { voltage: '11V', current: '1.5A' },
     deviceInfo: { type: '智能控制终端', name: '智能控制终端 Z-3', farm: '镇南种羊场', adminRegion: '吉林省-白城市', manufacturer: '智控科技', model: 'CTL-X2', remoteControlSupported: true },
@@ -454,6 +457,71 @@ export const mockDevices: Device[] = [
     location: { lat: 45.524, lng: 122.750 },
     lastData: { depth10: 28, depth20: 32, depth40: 38 },
     deviceInfo: { type: '土壤墒情站', name: '土壤墒情站 M-02', farm: '长岭种马场', adminRegion: '吉林省-松原市-长岭县', manufacturer: '农发科技', model: 'SM-200', remoteControlSupported: false },
+    alarms: []
+  },
+
+  // ═══ 洮南农场 ═══
+  { id: 'dev19', name: '土壤传感器 T-01', type: 'SOIL_SENSOR', status: 'ONLINE',
+    location: { lat: 45.553, lng: 122.812 },
+    lastData: { humidity: 0.58, temp: 19 },
+    deviceInfo: { type: '土壤传感器', name: '土壤传感器 T-01', farm: '洮南农场', adminRegion: '吉林省-白城市-洮南市', manufacturer: '农发科技', model: 'XT-710', remoteControlSupported: false },
+    alarms: []
+  },
+  { id: 'dev20', name: '自动气象站 T-01', type: 'WEATHER_STATION', status: 'ONLINE',
+    location: { lat: 45.550, lng: 122.808 },
+    lastData: { temp: 25, humidity: '42%', wind: '10 m/s', rain: '1 mm' },
+    deviceInfo: { type: '自动气象站', name: '自动气象站 T-01', farm: '洮南农场', adminRegion: '吉林省-白城市-洮南市', manufacturer: '精工仪表', model: 'AWS-200', remoteControlSupported: true },
+    alarms: []
+  },
+
+  // ═══ 大安农场 ═══
+  { id: 'dev21', name: '土壤墒情站 D-01', type: 'SOIL_MOISTURE', status: 'ONLINE',
+    location: { lat: 45.546, lng: 122.722 },
+    lastData: { depth10: 32, depth20: 36, depth40: 42 },
+    deviceInfo: { type: '土壤墒情站', name: '土壤墒情站 D-01', farm: '大安农场', adminRegion: '吉林省-白城市-大安市', manufacturer: '农发科技', model: 'SM-200', remoteControlSupported: false },
+    alarms: [{ id: 'al10', content: '墒情偏低预警', time: '2026-10-12', level: 'MEDIUM' }]
+  },
+  { id: 'dev22', name: '水肥一体机 D-01', type: 'FERTIGATION', status: 'ONLINE',
+    location: { lat: 45.549, lng: 122.718 },
+    lastData: { flow: '2.1L/s', pressure: '0.28MPa', ec: '1.6mS/cm' },
+    deviceInfo: { type: '水肥一体机', name: '水肥一体机 D-01', farm: '大安农场', adminRegion: '吉林省-白城市-大安市', manufacturer: '大禹节水', model: 'DY-F02', remoteControlSupported: true },
+    alarms: []
+  },
+
+  // ═══ 通榆农场 ═══
+  { id: 'dev23', name: '虫情测报灯 TY-01', type: 'PEST_MONITOR', status: 'ONLINE',
+    location: { lat: 45.513, lng: 122.796 },
+    lastData: { pestCount: 32, species: '草地螟' },
+    deviceInfo: { type: '虫情测报设备', name: '虫情测报灯 TY-01', farm: '通榆农场', adminRegion: '吉林省-白城市-通榆县', manufacturer: '云飞科技', model: 'YF-CB01', remoteControlSupported: false },
+    alarms: []
+  },
+  { id: 'dev24', name: '土壤传感器 TY-01', type: 'SOIL_SENSOR', status: 'FAULT',
+    location: { lat: 45.510, lng: 122.801 },
+    lastData: { humidity: 0.32, temp: 21 },
+    deviceInfo: { type: '土壤传感器', name: '土壤传感器 TY-01', farm: '通榆农场', adminRegion: '吉林省-白城市-通榆县', manufacturer: '精工仪表', model: 'XT-708', remoteControlSupported: false },
+    alarms: [{ id: 'al11', content: '传感器数据异常', time: '2026-10-13', level: 'HIGH' }]
+  },
+
+  // ═══ 农场摄像头（用于实时画面+方向控制） ═══
+  {
+    id: 'dev16', name: '牧场主摄像头', type: 'CAMERA', status: 'ONLINE',
+    location: { lat: 45.544, lng: 122.768 },
+    lastData: { resolution: '1080p', fps: 25 },
+    deviceInfo: { type: '摄像头', name: '牧场主摄像头', farm: '白城牧场', adminRegion: '吉林省-白城市-洮北区', manufacturer: '海康威视', model: 'PTZ-800', remoteControlSupported: true },
+    alarms: []
+  },
+  {
+    id: 'dev17', name: '种羊场全景摄像头', type: 'CAMERA', status: 'ONLINE',
+    location: { lat: 45.531, lng: 122.792 },
+    lastData: { resolution: '1080p', fps: 25 },
+    deviceInfo: { type: '摄像头', name: '种羊场全景摄像头', farm: '镇南种羊场', adminRegion: '吉林省-白城市-洮北区', manufacturer: '海康威视', model: 'PTZ-800', remoteControlSupported: true },
+    alarms: []
+  },
+  {
+    id: 'dev18', name: '马场监控摄像头', type: 'CAMERA', status: 'ONLINE',
+    location: { lat: 45.521, lng: 122.752 },
+    lastData: { resolution: '1080p', fps: 25 },
+    deviceInfo: { type: '摄像头', name: '马场监控摄像头', farm: '长岭种马场', adminRegion: '吉林省-松原市-长岭县', manufacturer: '海康威视', model: 'PTZ-800', remoteControlSupported: true },
     alarms: []
   },
 ];
@@ -967,6 +1035,28 @@ export const mockMapPlots: MapPlot[] = [
     status: 'STABLE', location: { lat: 43.810, lng: 125.262 },
     owner: '个人', contact: '135****0061', org: '经营部',
   },
+  { id: 'p43', name: '镇南-东岗宗地7号', type: 'ZONGDI', area: 11230.45, code: 'ZD-JL-ZN-2021-016-0101', version: '三调数据', farm: '镇南种羊场', region: '吉林省-白城市-洮北区-东风镇', category: '农用地', usageType: '耕地-旱地-011', attribution: '农垦集团', status: 'STABLE', titleStatus: '已发证', certLocation: '吉林省白城市洮北区东风镇东岗村', certType: '不动产权证书', certAuthority: '吉林省不动产登记局', certDate: '2023-03-15', certHolder: '吉林农发集团有限公司', ownershipType: '单独所有', unitNo: '220802 016011 GB00101', rightType: '国家所有', useRightType: '划拨', landClass: '旱地', useArea: 10780.22, startDate: '2023-03-15', endDate: '2043-03-14', location: { lat: 43.790, lng: 125.322 }, owner: '农垦集团', contact: '138****0101', org: '第一农场' },
+  { id: 'p44', name: '镇南-平台高标三区', type: 'HIGH_STANDARD', area: 2850.50, code: 'GB-JL-ZN-2023-017-0102', farm: '镇南种羊场', region: '吉林省-白城市-洮北区-平台镇', renovationStatus: '已完成', status: 'STABLE', planYear: '2022', buildYear: '2023', belongingZongdi: 'ZD-JL-ZN-2021-016-0101', usageType: '耕地-水田', infoStatus: '正常', location: { lat: 43.798, lng: 125.310 }, owner: '农垦集团', contact: '138****0102', org: '第一农场' },
+  { id: 'p45', name: '镇南-平台盐碱改良地', type: 'SALINE_ALKALI', area: 5230.75, code: 'YD-JL-ZN-2023-018-0103', farm: '镇南种羊场', region: '吉林省-白城市-洮北区-平台镇', status: 'STABLE', salineLevel: '中度盐碱地', salineType: '苏打盐碱地', belongingZongdi: 'ZD-JL-ZN-2019-011-0102', usageType: '未利用地', infoStatus: '正常', location: { lat: 43.802, lng: 125.305 }, owner: '农垦集团', contact: '138****0103', org: '第二农场' },
+  { id: 'p46', name: '镇南-统种玉米示范区', type: 'LEASING', leaseType: '统种', area: 3450.20, crop: '玉米', version: '2026年种植季', code: 'ZL-JL-ZN-2026-019-0104', belongingZongdi: 'ZD-JL-ZN-2020-012-0115', farm: '镇南种羊场', usageType: '耕地-旱地', inputArea: 3450.20, drawArea: 3400.10, preCrop: '玉米', preCropVariety: '郑单958', preCropNature: '重茬', contractorName: '镇南统种农民合作社', contractorIdentity: '企业法人', retirementDate: '2030-10-15', contractStartDate: '2026-04-05', contractEndDate: '2027-04-04', contractAmount: 9600, status: 'STABLE', location: { lat: 43.795, lng: 125.320 }, owner: '合作社', contact: '139****0104', org: '经营部' },
+  { id: 'p47', name: '镇南-承租大豆东地', type: 'LEASING', leaseType: '承租', area: 1560.35, crop: '大豆', version: '2026年种植季', code: 'ZL-JL-ZN-2026-020-0105', belongingZongdi: 'ZD-JL-ZN-2021-015-0089', farm: '镇南种羊场', usageType: '耕地-水田', inputArea: 1560.35, drawArea: 1540.80, preCrop: '大豆', preCropVariety: '中黄13', preCropNature: '新种', contractorName: '镇南农业科技有限公司', contractorIdentity: '企业法人', retirementDate: '2028-05-31', contractStartDate: '2026-04-18', contractEndDate: '2027-04-17', contractAmount: 5200, status: 'STABLE', location: { lat: 43.788, lng: 125.328 }, owner: '公司', contact: '136****0105', org: '经营部' },
+  { id: 'p48', name: '长岭-太平川宗地9号', type: 'ZONGDI', area: 9876.30, code: 'ZD-JL-CL-2022-004-0201', version: '三调数据', farm: '长岭种马场', region: '吉林省-松原市-长岭县-太平川镇', category: '农用地', usageType: '耕地-旱地-011', attribution: '农垦集团', status: 'STABLE', titleStatus: '已发证', certLocation: '吉林省松原市长岭县太平川镇太平村', certType: '不动产权证书', certAuthority: '吉林省不动产登记局', certDate: '2022-08-20', certHolder: '吉林农发集团有限公司', ownershipType: '单独所有', unitNo: '220722 004011 GB00201', rightType: '国家所有', useRightType: '划拨', landClass: '旱地', useArea: 9420.15, startDate: '2022-08-20', endDate: '2042-08-19', location: { lat: 43.845, lng: 125.350 }, owner: '农垦集团', contact: '139****0201', org: '第三农场' },
+  { id: 'p49', name: '长岭-太平山高标示范区', type: 'HIGH_STANDARD', area: 3200.60, code: 'GB-JL-CL-2024-005-0202', farm: '长岭种马场', region: '吉林省-松原市-长岭县-太平山镇', renovationStatus: '已完成', status: 'STABLE', planYear: '2023', buildYear: '2024', belongingZongdi: 'ZD-JL-CL-2022-004-0201', usageType: '耕地-水田', infoStatus: '正常', location: { lat: 43.850, lng: 125.345 }, owner: '农垦集团', contact: '139****0202', org: '第三农场' },
+  { id: 'p50', name: '长岭-太平川盐碱地块', type: 'SALINE_ALKALI', area: 4860.90, code: 'YD-JL-CL-2022-006-0203', farm: '长岭种马场', region: '吉林省-松原市-长岭县-太平川镇', status: 'STABLE', salineLevel: '轻度盐碱地', salineType: '氯化物盐碱地', belongingZongdi: 'ZD-JL-CL-2020-005-0056', usageType: '未利用地', infoStatus: '正常', location: { lat: 43.840, lng: 125.355 }, owner: '农垦集团', contact: '139****0203', org: '第三农场' },
+  { id: 'p51', name: '长岭-统种小麦基地', type: 'LEASING', leaseType: '统种', area: 4200.80, crop: '小麦', version: '2026年种植季', code: 'ZL-JL-CL-2026-007-0204', belongingZongdi: 'ZD-JL-CL-2021-004-0078', farm: '长岭种马场', usageType: '耕地-水田', inputArea: 4200.80, drawArea: 4150.30, preCrop: '小麦', preCropVariety: '蒙麦20', preCropNature: '重茬', contractorName: '长岭县农兴统种合作社', contractorIdentity: '企业法人', retirementDate: '2031-08-20', contractStartDate: '2026-04-10', contractEndDate: '2027-04-09', contractAmount: 12000, status: 'STABLE', location: { lat: 43.855, lng: 125.340 }, owner: '合作社', contact: '138****0204', org: '经营部' },
+  { id: 'p52', name: '长岭-承租玉米北地', type: 'LEASING', leaseType: '承租', area: 1850.45, crop: '玉米', version: '2026年种植季', code: 'ZL-JL-CL-2026-008-0205', belongingZongdi: 'ZD-JL-CL-2022-003-0012', farm: '长岭种马场', usageType: '耕地-旱地', inputArea: 1850.45, drawArea: 1830.20, preCrop: '玉米', preCropVariety: '先育335', preCropNature: '重茬', contractorName: '张德发', contractorIdentity: '个人', retirementDate: '2028-12-31', contractStartDate: '2026-03-28', contractEndDate: '2027-03-27', contractAmount: 5500, status: 'STABLE', location: { lat: 43.848, lng: 125.358 }, owner: '个人', contact: '135****0205', org: '经营部' },
+
+  // ═══ 洮南农场 ═══
+  { id: 'p53', name: '洮南-黑水高标农田', type: 'HIGH_STANDARD', area: 3860.50, code: 'GB-JL-TN-2024-001-0301', farm: '洮南农场', region: '吉林省-白城市-洮南市-黑水镇', renovationStatus: '施工中', status: 'STABLE', planYear: '2024', buildYear: '2025', belongingZongdi: 'ZD-JL-TN-2021-001-0301', usageType: '耕地-水田', infoStatus: '正常', location: { lat: 45.555, lng: 122.815 }, owner: '农垦集团', contact: '138****0301', org: '洮南农场' },
+  { id: 'p54', name: '洮南-安定盐碱治理区', type: 'SALINE_ALKALI', area: 3560.20, code: 'YD-JL-TN-2023-002-0302', farm: '洮南农场', region: '吉林省-白城市-洮南市-安定镇', status: 'STABLE', salineLevel: '重度盐碱地', salineType: '苏打盐碱地', belongingZongdi: 'ZD-JL-TN-2020-002-0302', usageType: '未利用地', infoStatus: '正常', location: { lat: 45.548, lng: 122.805 }, owner: '农垦集团', contact: '138****0302', org: '洮南农场' },
+
+  // ═══ 大安农场 ═══
+  { id: 'p55', name: '大安-月亮泡高标农田', type: 'HIGH_STANDARD', area: 4250.80, code: 'GB-JL-DA-2024-001-0401', farm: '大安农场', region: '吉林省-白城市-大安市-月亮泡镇', renovationStatus: '已完成', status: 'STABLE', planYear: '2023', buildYear: '2024', belongingZongdi: 'ZD-JL-DA-2022-001-0401', usageType: '耕地-旱地', infoStatus: '正常', location: { lat: 45.550, lng: 122.725 }, owner: '农垦集团', contact: '139****0401', org: '大安农场' },
+  { id: 'p56', name: '大安-安广盐碱改良地', type: 'SALINE_ALKALI', area: 4820.60, code: 'YD-JL-DA-2022-002-0402', farm: '大安农场', region: '吉林省-白城市-大安市-安广镇', status: 'STABLE', salineLevel: '中度盐碱地', salineType: '氯化物盐碱地', belongingZongdi: 'ZD-JL-DA-2021-002-0045', usageType: '未利用地', infoStatus: '正常', location: { lat: 45.545, lng: 122.718 }, owner: '农垦集团', contact: '139****0402', org: '大安农场' },
+
+  // ═══ 通榆农场 ═══
+  { id: 'p57', name: '通榆-向海高标示范区', type: 'HIGH_STANDARD', area: 3980.30, code: 'GB-JL-TY-2024-001-0501', farm: '通榆农场', region: '吉林省-白城市-通榆县-向海乡', renovationStatus: '已完成', status: 'STABLE', planYear: '2023', buildYear: '2024', belongingZongdi: 'ZD-JL-TY-2022-001-0501', usageType: '耕地-旱地', infoStatus: '正常', location: { lat: 45.512, lng: 122.798 }, owner: '农垦集团', contact: '137****0501', org: '通榆农场' },
+  { id: 'p58', name: '通榆-兴隆山盐碱地块', type: 'SALINE_ALKALI', area: 5120.40, code: 'YD-JL-TY-2023-002-0502', farm: '通榆农场', region: '吉林省-白城市-通榆县-兴隆山镇', status: 'STABLE', salineLevel: '轻度盐碱地', salineType: '苏打盐碱地', belongingZongdi: 'ZD-JL-TY-2020-002-0050', usageType: '未利用地', infoStatus: '正常', location: { lat: 45.508, lng: 122.793 }, owner: '农垦集团', contact: '137****0502', org: '通榆农场' },
 ];
 
 export const mockPlotOperations: Record<string, FieldOperation[]> = {
@@ -1092,6 +1182,16 @@ export const mockPlotOperations: Record<string, FieldOperation[]> = {
     { id: 'op-p42-3', type: '田间管理', item: '追肥', date: '2026-06-08', detail: '尿素 10kg/亩' },
     { id: 'op-p42-4', type: '收获', item: '小麦收割', date: '2026-07-25', crop: '小麦', variety: '蒙麦20', detail: '预计产量 410kg/亩' },
   ],
+  p43: [{ id: 'op-p43-1', type: '播种', item: '玉米精量播种', date: '2026-04-20', crop: '玉米', variety: '郑单958', detail: '株距25cm行距60cm' }, { id: 'op-p43-2', type: '田间管理', item: '苗后除草', date: '2026-05-15', detail: '机械中耕除草' }, { id: 'op-p43-3', type: '田间管理', item: '灌水', date: '2026-06-25', detail: '滴灌30m³/亩' }, { id: 'op-p43-4', type: '收获', item: '玉米机械收获', date: '2026-10-15', crop: '玉米', variety: '郑单958', detail: '预计650kg/亩' }],
+  p44: [{ id: 'op-p44-1', type: '播种', item: '小麦条播', date: '2026-04-12', crop: '小麦', variety: '蒙麦20', detail: '播种量15kg/亩' }, { id: 'op-p44-2', type: '田间管理', item: '春季除草', date: '2026-05-10', detail: '化学除草剂喷洒' }, { id: 'op-p44-3', type: '田间管理', item: '追肥', date: '2026-06-02', detail: '尿素10kg/亩' }, { id: 'op-p44-4', type: '收获', item: '小麦收割', date: '2026-07-20', crop: '小麦', variety: '蒙麦20', detail: '预计420kg/亩' }],
+  p45: [{ id: 'op-p45-1', type: '田间管理', item: '盐碱地改良深耕', date: '2026-04-25', detail: '深翻30cm配合有机肥' }, { id: 'op-p45-2', type: '田间管理', item: '灌水洗盐', date: '2026-05-20', detail: '大水漫灌80m³/亩' }],
+  p46: [{ id: 'op-p46-1', type: '播种', item: '玉米精量播种', date: '2026-04-18', crop: '玉米', variety: '郑单958', detail: '株距25cm行距60cm' }, { id: 'op-p46-2', type: '田间管理', item: '灌水', date: '2026-06-22', detail: '滴灌25m³/亩' }, { id: 'op-p46-3', type: '田间管理', item: '追肥', date: '2026-07-15', detail: '尿素12kg/亩' }, { id: 'op-p46-4', type: '收获', item: '玉米机械收获', date: '2026-10-20', crop: '玉米', variety: '郑单958', detail: '预计660kg/亩' }],
+  p47: [{ id: 'op-p47-1', type: '播种', item: '大豆播种', date: '2026-05-02', crop: '大豆', variety: '中黄13', detail: '播种量5kg/亩' }, { id: 'op-p47-2', type: '田间管理', item: '除草', date: '2026-06-10', detail: '机械中耕' }, { id: 'op-p47-3', type: '收获', item: '大豆收割', date: '2026-09-25', crop: '大豆', variety: '中黄13', detail: '预计185kg/亩' }],
+  p48: [{ id: 'op-p48-1', type: '播种', item: '玉米播种', date: '2026-04-22', crop: '玉米', variety: '先育335', detail: '株距27cm' }, { id: 'op-p48-2', type: '田间管理', item: '灌水', date: '2026-06-25', detail: '滴灌28m³/亩' }, { id: 'op-p48-3', type: '田间管理', item: '追肥', date: '2026-07-20', detail: '复合肥15kg/亩' }, { id: 'op-p48-4', type: '收获', item: '玉米收获', date: '2026-10-15', crop: '玉米', variety: '先育335', detail: '预计640kg/亩' }],
+  p49: [{ id: 'op-p49-1', type: '播种', item: '大豆播种', date: '2026-05-04', crop: '大豆', variety: '黑河43', detail: '播种量5kg/亩' }, { id: 'op-p49-2', type: '田间管理', item: '除草', date: '2026-06-12', detail: '化学除草' }, { id: 'op-p49-3', type: '田间管理', item: '灌水', date: '2026-07-08', detail: '滴灌20m³/亩' }, { id: 'op-p49-4', type: '收获', item: '大豆收割', date: '2026-09-22', crop: '大豆', variety: '黑河43', detail: '预计175kg/亩' }],
+  p50: [{ id: 'op-p50-1', type: '田间管理', item: '盐碱地深松改良', date: '2026-04-20', detail: '深松35cm施用改良剂' }, { id: 'op-p50-2', type: '田间管理', item: '灌水压碱', date: '2026-05-15', detail: '喷灌60m³/亩' }],
+  p51: [{ id: 'op-p51-1', type: '播种', item: '小麦条播', date: '2026-04-12', crop: '小麦', variety: '蒙麦20', detail: '播种量15kg/亩' }, { id: 'op-p51-2', type: '田间管理', item: '春季除草', date: '2026-05-10', detail: '化学除草' }, { id: 'op-p51-3', type: '田间管理', item: '追肥', date: '2026-06-08', detail: '尿素10kg/亩' }, { id: 'op-p51-4', type: '收获', item: '小麦收割', date: '2026-07-25', crop: '小麦', variety: '蒙麦20', detail: '预计410kg/亩' }],
+  p52: [{ id: 'op-p52-1', type: '播种', item: '玉米精量播种', date: '2026-04-20', crop: '玉米', variety: '郑单958', detail: '株距25cm行距60cm' }, { id: 'op-p52-2', type: '田间管理', item: '苗后除草', date: '2026-05-15', detail: '机械中耕除草' }, { id: 'op-p52-3', type: '田间管理', item: '追肥', date: '2026-07-05', detail: '复合肥15kg/亩' }, { id: 'op-p52-4', type: '收获', item: '玉米机械收获', date: '2026-10-15', crop: '玉米', variety: '郑单958', detail: '预计650kg/亩' }],
 };
 
 export const mockPlanting: PlantingRecord[] = [

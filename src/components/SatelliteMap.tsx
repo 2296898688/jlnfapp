@@ -289,8 +289,7 @@ export default function SatelliteMap({
 
     if (!showIot) return;
 
-    const zoom = mapRef.current?.getZoom() ?? 13;
-    const showLabel = zoom >= 14;
+    const showLabel = true;
 
     devices.forEach((d) => {
       const pos: [number, number] = [d.location.lat, d.location.lng];

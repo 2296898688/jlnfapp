@@ -5,15 +5,15 @@ export default function About() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
-      <header className="bg-white border-b border-slate-100 flex items-center gap-3 px-6 py-4 sticky top-0 z-20">
-        <button onClick={() => navigate(-1)} className="p-1 active:bg-slate-50 rounded-lg">
-          <ArrowLeft size={20} className="text-slate-400" />
+    <div className="flex flex-col min-h-screen bg-slate-50 pb-20">
+      <div className="px-5 pt-5">
+        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center active:scale-95 transition-transform mb-3">
+          <ArrowLeft size={18} className="text-slate-500" />
         </button>
-        <h1 className="text-[17px] font-bold text-slate-800">关于</h1>
-      </header>
+        <h1 className="text-xl font-bold text-slate-800 tracking-tight">关于</h1>
+      </div>
 
-      <div className="flex-1 p-5 space-y-6">
+      <div className="flex-1 px-5 mt-4 space-y-6">
         {/* App Info */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 text-center space-y-3">
           <div className="w-16 h-16 rounded-2xl bg-blue-700 mx-auto flex items-center justify-center">

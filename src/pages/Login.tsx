@@ -95,17 +95,17 @@ export default function Login({ onLogin }: LoginProps) {
                 </div>
               </div>
               <div className="text-left">
-                <h1 className="text-lg font-bold leading-tight uppercase tracking-wider text-blue-900">吉林农发<br />智慧农业</h1>
+                <h1 className="text-lg font-bold leading-tight text-blue-900">吉林农发<br />智慧农业</h1>
               </div>
             </div>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.2em]">移动端系统 v2.1.0 · 演示版</p>
+            <p className="text-xs text-slate-400 font-bold">移动端系统 v2.1.0 · 演示版</p>
           </div>
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-3">
               <div className="group space-y-1.5">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1">登录账号</label>
+                <label className="text-[10px] text-slate-400 font-bold ml-1">登录账号</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-300 group-focus-within:text-blue-600 transition-colors">
                     <User size={18} />
@@ -122,7 +122,7 @@ export default function Login({ onLogin }: LoginProps) {
               </div>
 
               <div className="group space-y-1.5">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1">安全密码</label>
+                <label className="text-[10px] text-slate-400 font-bold ml-1">安全密码</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-300 group-focus-within:text-blue-600 transition-colors">
                     <Lock size={18} />
@@ -172,7 +172,7 @@ export default function Login({ onLogin }: LoginProps) {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <div className="flex-1 h-[1px] bg-slate-100" />
-              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">演示账号快速进入</span>
+              <span className="text-[10px] font-bold text-slate-300">演示账号快速进入</span>
               <div className="flex-1 h-[1px] bg-slate-100" />
             </div>
 

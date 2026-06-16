@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import {
@@ -16,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
-import { useUser } from '../App';
+import { useUser } from '../UserContext';
 import { mockDevices, mockMapPlots, mockFarms, mockPlotOperations, mockLandAnalysis, mockCropAnalysis, mockLandCompanyAnalysis } from '../mockData';
 import { Device, MapPlot, Farm, UserRole, FieldOperation } from '../types';
 import SatelliteMap from '../components/SatelliteMap';
@@ -54,9 +55,12 @@ const CROP_LAYER_META: { id: CropLayer; label: string; color: string }[] = [
 
 /** 根据角色返回初始可见图层 */
 function getDefaultLayers(role: UserRole): Set<LandLayer> {
-  // 农垦集团不显示高标准农田和盐碱地
   if (role === 'NONGKEN_ADMIN') {
     return new Set(['ZONGDI'] as LandLayer[]);
+  }
+  // 土地资源公司只关注高标准农田和盐碱地
+  if (role === 'LAND_COMPANY_ADMIN') {
+    return new Set(['HIGH_STANDARD', 'SALINE_ALKALI'] as LandLayer[]);
   }
   return new Set(['ZONGDI', 'HIGH_STANDARD', 'SALINE_ALKALI'] as LandLayer[]);
 }
@@ -65,6 +69,10 @@ function getDefaultLayers(role: UserRole): Set<LandLayer> {
 function getAvailableLayers(role: UserRole): { id: LandLayer; label: string; color: string }[] {
   if (role === 'NONGKEN_ADMIN') {
     return LAYER_META.filter(l => l.id === 'ZONGDI');
+  }
+  // 土地资源公司不显示宗地图层
+  if (role === 'LAND_COMPANY_ADMIN') {
+    return LAYER_META.filter(l => l.id !== 'ZONGDI');
   }
   return LAYER_META;
 }
@@ -89,9 +97,11 @@ export default function MapDashboard() {
 
   // ─── 状态 ───
   // ─── 权限过滤 ───
-  const filteredFarms = user.orgFilter ? mockFarms.filter(f => f.name === user.orgFilter || f.id === 'all') : mockFarms;
-  const filteredPlots = user.orgFilter ? mockMapPlots.filter(p => p.farm === user.orgFilter) : mockMapPlots;
-  const filteredDevices = user.orgFilter ? mockDevices.filter(d => d.deviceInfo?.farm === user.orgFilter) : mockDevices;
+  const isLandCompany = user.role === 'LAND_COMPANY_ADMIN';
+  const baseFarms = user.orgFilter ? mockFarms.filter(f => f.name === user.orgFilter || f.id === 'all') : isLandCompany ? mockFarms : mockFarms.filter(f => !['f4','f5','f6'].includes(f.id));
+  const filteredFarms = baseFarms;
+  const filteredPlots = user.orgFilter ? mockMapPlots.filter(p => p.farm === user.orgFilter) : isLandCompany ? mockMapPlots : mockMapPlots.filter(p => !['洮南农场','大安农场','通榆农场'].includes(p.farm));
+  const filteredDevices = user.orgFilter ? mockDevices.filter(d => d.deviceInfo?.farm === user.orgFilter) : isLandCompany ? mockDevices : mockDevices.filter(d => !['洮南农场','大安农场','通榆农场'].includes(d.deviceInfo?.farm || ''));
 
   const [selectedFarm, setSelectedFarm] = useState<Farm>(filteredFarms[0]);
 
@@ -107,8 +117,6 @@ export default function MapDashboard() {
 
   const [detailExpanded, setDetailExpanded] = useState(false);
   const [filterExpanded, setFilterExpanded] = useState(false);
-  const [layerExpanded, setLayerExpanded] = useState(false);
-
   // ─── 气象图层 ───
   const [showWeatherLayer, setShowWeatherLayer] = useState(false);
   const [weatherMetric, setWeatherMetric] = useState<WeatherMetric>('temp');
@@ -152,6 +160,12 @@ export default function MapDashboard() {
     setIotTypeFilter('ALL'); setIotCodeFilter(''); setIotNameFilter('');
   };
 
+  const [filterDraft, setFilterDraft] = useState<any>(null);
+  const snapDraft = (): any => ({ filterVersion, filterAttribution, filterFarm, filterRegion, filterCode, filterName, hsRegion, hsRenovation, hsPlanYear, hsBuildYear, hsName, hsCode, saRegion, saLevel, saType, saName, saCode, iotTypeFilter, iotCodeFilter, iotNameFilter, cropLayers: new Set(visibleCropLayers) });
+  const initDraft = () => setFilterDraft(snapDraft());
+  const applyDraft = () => { if (!filterDraft) return; const d = filterDraft; setFilterVersion(d.filterVersion); setFilterAttribution(d.filterAttribution); setFilterFarm(d.filterFarm); setFilterRegion(d.filterRegion); setFilterCode(d.filterCode); setFilterName(d.filterName); setHsRegion(d.hsRegion); setHsRenovation(d.hsRenovation); setHsPlanYear(d.hsPlanYear); setHsBuildYear(d.hsBuildYear); setHsName(d.hsName); setHsCode(d.hsCode); setSaRegion(d.saRegion); setSaLevel(d.saLevel); setSaType(d.saType); setSaName(d.saName); setSaCode(d.saCode); setIotTypeFilter(d.iotTypeFilter); setIotCodeFilter(d.iotCodeFilter); setIotNameFilter(d.iotNameFilter); setVisibleCropLayers(d.cropLayers); setFilterDraft(null); setShowFilter(false); setFilterExpanded(false); };
+  const resetDraft = () => setFilterDraft({ filterVersion: '', filterAttribution: '', filterFarm: '', filterRegion: '', filterCode: '', filterName: '', hsRegion: '', hsRenovation: '', hsPlanYear: '', hsBuildYear: '', hsName: '', hsCode: '', saRegion: '', saLevel: '', saType: '', saName: '', saCode: '', iotTypeFilter: 'ALL', iotCodeFilter: '', iotNameFilter: '', cropLayers: getDefaultCropLayers() });
+
   // ─── 切换 Tab 时重置面板 ───
   const switchTab = (tab: MainTab) => {
     // 土地公司无种植分布
@@ -162,7 +176,6 @@ export default function MapDashboard() {
     setSelectedDevice(null);
     setDetailExpanded(false);
     setFilterExpanded(false);
-    setLayerExpanded(false);
     setShowWeatherLayer(false);
   };
 
@@ -257,6 +270,69 @@ export default function MapDashboard() {
     total: farmDevices.length,
     online: farmDevices.filter((d) => d.status === 'ONLINE').length,
     fault: farmDevices.filter((d) => d.status === 'FAULT').length,
+  };
+
+  // ─── 土地分析动态数据 ───
+  const landPlotsForStats = farmPlots.filter(p => p.type !== 'LEASING');
+  const muByType: Record<string, number> = {}; const cntByType: Record<string, number> = {};
+  landPlotsForStats.forEach(p => { muByType[p.type] = (muByType[p.type] || 0) + (p.area || 0); cntByType[p.type] = (cntByType[p.type] || 0) + 1; });
+  const zMu = (muByType.ZONGDI || 0) / 10000, hMu = (muByType.HIGH_STANDARD || 0) / 10000, sMu = (muByType.SALINE_ALKALI || 0) / 10000;
+  const landMu = zMu + hMu + sMu;
+  const confirmRate = landMu > 0 ? Math.min(100, Math.round((zMu * 0.85 + hMu * 0.9 + sMu * 0.4) / landMu * 100)) : 0;
+  const isFarmView = selectedFarm.id !== 'all';
+  const farmLabel = isFarmView ? selectedFarm.name : '全集团';
+  const landStats = {
+    farmLabel, isFarmView,
+    totalArea: landMu.toFixed(1), confirmedArea: (landMu * confirmRate / 100).toFixed(1), unconfirmedArea: (landMu * (100 - confirmRate) / 100).toFixed(1), confirmRate,
+    rightsDistribution: [{ label: '已发证', value: 44.3, pct: 13.7, color: '#0D665E' }, { label: '已登记未发证', value: 54.7, pct: 16.9, color: '#2D9F7A' }, { label: '已确权未登记', value: 32.2, pct: 9.9, color: '#E8A838' }, { label: '未确权', value: 192.8, pct: 59.5, color: '#CBD5E1' }],
+    landUse: [{ pct: landMu > 0 ? Math.round(zMu / landMu * 100) : 40, color: '#4B7B73', label: '宗地' }, { pct: landMu > 0 ? Math.round(hMu / landMu * 100) : 35, color: '#2D9F7A', label: '高标准农田' }, { pct: landMu > 0 ? Math.round(sMu / landMu * 100) : 25, color: '#E8A838', label: '盐碱地' }],
+    farmLandTypes: isFarmView ? [] : [{ farm: '白城牧场', 耕地: 42, 草地: 30, 其他: 18, 建设用地: 10 }, { farm: '镇南种羊场', 耕地: 38, 草地: 32, 其他: 20, 建设用地: 10 }, { farm: '长岭种马场', 耕地: 45, 草地: 25, 其他: 15, 建设用地: 15 }, ...(isLandCompany ? [{ farm: '洮南农场', 耕地: 48, 草地: 22, 其他: 18, 建设用地: 12 }, { farm: '大安农场', 耕地: 40, 草地: 28, 其他: 22, 建设用地: 10 }, { farm: '通榆农场', 耕地: 44, 草地: 26, 其他: 16, 建设用地: 14 }] : [])],
+    farmRights: isFarmView ? [] : [{ farm: '白城牧场', 已发证: 16.2, 已登记未发证: 18.5, 已确权未登记: 10.1, 未确权: 62.3 }, { farm: '镇南种羊场', 已发证: 14.1, 已登记未发证: 20.2, 已确权未登记: 12.1, 未确权: 65.2 }, { farm: '长岭种马场', 已发证: 14.0, 已登记未发证: 16.0, 已确权未登记: 10.0, 未确权: 65.3 }, ...(isLandCompany ? [{ farm: '洮南农场', 已发证: 12.5, 已登记未发证: 15.8, 已确权未登记: 8.5, 未确权: 68.6 }, { farm: '大安农场', 已发证: 13.8, 已登记未发证: 17.2, 已确权未登记: 9.8, 未确权: 64.3 }, { farm: '通榆农场', 已发证: 15.1, 已登记未发证: 14.5, 已确权未登记: 11.2, 未确权: 63.9 }] : [])],
+    regionRights: isFarmView ? [] : [{ region: '洮北区', pct: 38 }, { region: '长岭县', pct: 18 }, { region: '洮南市', pct: 16 }, { region: '大安市', pct: 14 }, { region: '通榆县', pct: 14 }],
+    totalHighStandard: Math.round(muByType.HIGH_STANDARD || 0),
+    highStandardByFarm: isFarmView
+      ? [{ farm: farmLabel, area: Math.round(muByType.HIGH_STANDARD || 0), plots: cntByType.HIGH_STANDARD || 0, color: '#0D665E' }]
+      : [
+          { farm: '白城牧场', area: 5684, plots: 2, color: '#0D665E' },
+          { farm: '镇南种羊场', area: 3201, plots: 1, color: '#2D9F7A' },
+          { farm: '长岭种马场', area: 4641, plots: 2, color: '#4B7B73' },
+          ...(isLandCompany ? [
+            { farm: '洮南农场', area: 3860, plots: 1, color: '#0891B2' },
+            { farm: '大安农场', area: 4250, plots: 1, color: '#7C3AED' },
+            { farm: '通榆农场', area: 3980, plots: 1, color: '#DB2777' },
+          ] : []),
+        ],
+    totalSaline: Math.round(muByType.SALINE_ALKALI || 0),
+    salineByLevel: [{ level: '轻度盐碱地', area: Math.round((muByType.SALINE_ALKALI || 0) * 0.55), color: '#FCD34D' }, { level: '中度盐碱地', area: Math.round((muByType.SALINE_ALKALI || 0) * 0.35), color: '#F59E0B' }, { level: '重度盐碱地', area: Math.round((muByType.SALINE_ALKALI || 0) * 0.10), color: '#DC2626' }],
+    salineByType: [{ type: '苏打盐碱地', area: Math.round((muByType.SALINE_ALKALI || 0) * 0.6), color: '#E8A838' }, { type: '氯化物盐碱地', area: Math.round((muByType.SALINE_ALKALI || 0) * 0.4), color: '#C4A27C' }],
+    salineByFarm: isFarmView
+      ? [{ farm: farmLabel, area: Math.round(muByType.SALINE_ALKALI || 0), color: '#E8A838' }]
+      : [
+          { farm: '白城牧场', area: 5230, color: '#E8A838' },
+          { farm: '镇南种羊场', area: 3845, color: '#D97706' },
+          { farm: '长岭种马场', area: 4900, color: '#DC2626' },
+          ...(isLandCompany ? [
+            { farm: '洮南农场', area: 3560, color: '#F59E0B' },
+            { farm: '大安农场', area: 4820, color: '#7C3AED' },
+            { farm: '通榆农场', area: 5120, color: '#DB2777' },
+          ] : []),
+        ],
+  };
+
+  // ─── 种植分析动态数据 ───
+  const cropAnalysisData = {
+    ...mockCropAnalysis,
+    isFarmView,
+    farmLabel,
+    farmLeaseRatio: isFarmView ? mockCropAnalysis.farmLeaseRatio.filter((f: any) => f.farm === selectedFarm.name) : mockCropAnalysis.farmLeaseRatio,
+    farmProgress: {
+      ...mockCropAnalysis.farmProgress,
+      data: isFarmView ? mockCropAnalysis.farmProgress.data.filter((f: any) => f.farm === selectedFarm.name) : mockCropAnalysis.farmProgress.data,
+    },
+    farmInput: {
+      ...mockCropAnalysis.farmInput,
+      data: isFarmView ? mockCropAnalysis.farmInput.data.filter((f: any) => f.farm === selectedFarm.name) : mockCropAnalysis.farmInput.data,
+    },
   };
 
   return (
@@ -366,10 +442,10 @@ export default function MapDashboard() {
           </div>
         </div>
 
-        {/* 悬浮按钮 */}
+        {/* 悬浮按钮 —— 胶囊右下 */}
         {!panelOpen && (
-          <div className="absolute right-4 top-3 z-20 flex flex-col gap-2">
-            {activeTab !== 'iot' && getAvailableLayers(user.role).length > 1 && (
+          <div className="absolute right-4 z-20 flex flex-col gap-2" style={{top:"72px"}}>
+            {activeTab === 'land' && getAvailableLayers(user.role).length > 1 && (
             <button
               onClick={() => { setShowLayerPanel(true); setShowFilter(false); }}
               className={cn(
@@ -381,7 +457,7 @@ export default function MapDashboard() {
             </button>
             )}
             <button
-              onClick={() => { setShowFilter(true); setShowLayerPanel(false); }}
+              onClick={() => { initDraft(); setShowFilter(true); setShowLayerPanel(false); }}
               className={cn(
                 'w-11 h-11 rounded-xl shadow-lg border flex items-center justify-center active:scale-95 transition-all',
                 showFilter ? 'bg-[#0D665E] border-[#0D665E] text-white' : 'bg-white border-slate-200 text-slate-600',
@@ -406,7 +482,7 @@ export default function MapDashboard() {
 
       {/* ═══════ 气象指标选择器 ═══════ */}
       {showWeatherLayer && (
-        <div className="absolute bottom-12 left-0 right-0 z-25 pb-1 pointer-events-none">
+        <div className="absolute left-0 right-0 z-25 pb-1 pointer-events-none" style={{bottom:"128px"}}>
           <div className="px-3 pointer-events-auto">
             {/* 色阶图例 */}
             <div className="flex justify-center mb-2">
@@ -430,7 +506,7 @@ export default function MapDashboard() {
               </div>
             </div>
             {/* 指标切换 */}
-            <div className="flex gap-2 overflow-x-auto scrollbar-none py-1 px-1">
+            <div className="flex gap-2 overflow-x-auto scrollbar-none py-1 px-1 justify-center">
               {([
                 { key: 'temp' as WeatherMetric, label: '温度' },
                 { key: 'rain' as WeatherMetric, label: '降水' },
@@ -479,7 +555,7 @@ export default function MapDashboard() {
               dragElastic={0.2}
               onDragEnd={(_e, info) => {
                 if (info.offset.y < -50) setDetailExpanded(true);
-                else if (info.offset.y > 120) { setPanelOpen(false); setSelectedPlot(null); setSelectedDevice(null); setDetailExpanded(false); }
+                else if (info.velocity.y > 200 || info.offset.y > 60) { setPanelOpen(false); setSelectedPlot(null); setSelectedDevice(null); setDetailExpanded(false); }
                 else setDetailExpanded(false);
               }}
               className="absolute bottom-0 left-0 right-0 z-40 bg-white rounded-t-2xl shadow-2xl h-[68vh] flex flex-col"
@@ -559,7 +635,7 @@ export default function MapDashboard() {
         )}
       </AnimatePresence>
 
-      {/* ═══════ 筛选面板 ═══════ */}
+      {/* ═══════ 筛选面板（右侧抽屉） ═══════ */}
       <AnimatePresence>
         {showFilter && (
           <>
@@ -567,41 +643,40 @@ export default function MapDashboard() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setShowFilter(false); setFilterExpanded(false); }}
-              className="absolute inset-0 z-30 bg-black/20"
+              onClick={() => { setShowFilter(false); setFilterDraft(null); }}
+              className="absolute inset-0 z-30 bg-black/30"
             />
             <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: filterExpanded ? 0 : '35%' }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-              drag="y"
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_e, info) => {
-                if (info.offset.y < -50) setFilterExpanded(true);
-                else if (info.offset.y > 120) { setShowFilter(false); setFilterExpanded(false); }
-                else setFilterExpanded(false);
-              }}
-              className="absolute bottom-0 left-0 right-0 z-40 bg-white rounded-t-2xl shadow-2xl h-[65vh] flex flex-col"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="absolute top-0 bottom-0 right-0 z-40 bg-white shadow-2xl flex flex-col"
+              style={{ width: 'min(85vw, 340px)' }}
             >
-              <div className="flex justify-center pt-3 pb-1 shrink-0 touch-none">
-                <div className="w-10 h-1 bg-slate-200 rounded-full" />
-              </div>
-              <div className="flex items-center justify-between px-5 py-2 border-b border-slate-50 shrink-0">
-                <h3 className="text-[15px] font-bold text-slate-800">筛选</h3>
-                <button
-                  onClick={resetFilters}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-700"
-                >
-                  <RotateCcw size={13} />
-                  重置
-                </button>
+              {/* 头部 */}
+              <div className="flex items-center justify-between px-5 pt-12 pb-2 border-b border-slate-50 shrink-0">
+                <h3 className="text-[16px] font-bold text-slate-800">筛选</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={resetDraft}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-slate-600"
+                  >
+                    <RotateCcw size={13} />
+                    重置
+                  </button>
+                  <button
+                    onClick={() => { setShowFilter(false); setFilterDraft(null); }}
+                    className="p-1.5 text-slate-400 hover:text-slate-600"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
               </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6 pb-8">
-              {/* ─── 宗地筛选 ─── */}
-              {activeTab === 'land' && (
+            {filterDraft && (<div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+              {/* ─── 宗地筛选（土地资源公司不显示） ─── */}
+              {activeTab === 'land' && user.role !== 'LAND_COMPANY_ADMIN' && (
                 <section>
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-1 h-4 rounded-full" style={{ backgroundColor: PLOT_COLORS.ZONGDI }} />
@@ -609,16 +684,16 @@ export default function MapDashboard() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex gap-2">
-                      <SelectField value={filterVersion} onChange={setFilterVersion} placeholder="数据版本" options={['三调数据']} />
-                      <SelectField value={filterAttribution} onChange={setFilterAttribution} placeholder="宗地归属" options={['农垦集团', '集体']} />
+                      <PickerField value={filterDraft?.filterVersion??""} onChange={(v)=>setFilterDraft(p=>({...p,filterVersion:v}))} placeholder="数据版本" options={['三调数据']} />
+                      <PickerField value={filterDraft?.filterAttribution??""} onChange={(v)=>setFilterDraft(p=>({...p,filterAttribution:v}))} placeholder="宗地归属" options={['农垦集团', '集体']} />
                     </div>
                     <div className="flex gap-2">
-                      <SelectField value={filterFarm} onChange={setFilterFarm} placeholder="所属农场" options={['镇南种羊场', '白城牧场', '长岭种马场']} />
-                      <SelectField value={filterRegion} onChange={setFilterRegion} placeholder="行政区域" options={['洮北区', '长岭县']} />
+                      <PickerField value={filterDraft?.filterFarm??""} onChange={(v)=>setFilterDraft(p=>({...p,filterFarm:v}))} placeholder="所属农场" options={['镇南种羊场', '白城牧场', '长岭种马场']} />
+                      <PickerField value={filterDraft?.filterRegion??""} onChange={(v)=>setFilterDraft(p=>({...p,filterRegion:v}))} placeholder="行政区域" options={['洮北区', '长岭县']} />
                     </div>
                     <div className="flex gap-2">
-                      <TextFilter value={filterCode} onChange={setFilterCode} placeholder="宗地编号" />
-                      <TextFilter value={filterName} onChange={setFilterName} placeholder="宗地俗名" />
+                      <TextFilter value={filterDraft?.filterCode??""} onChange={(v)=>setFilterDraft(p=>({...p,filterCode:v}))} placeholder="宗地编号" />
+                      <TextFilter value={filterDraft?.filterName??""} onChange={(v)=>setFilterDraft(p=>({...p,filterName:v}))} placeholder="宗地俗名" />
                     </div>
                   </div>
                 </section>
@@ -633,16 +708,16 @@ export default function MapDashboard() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex gap-2">
-                      <SelectField value={hsRegion} onChange={setHsRegion} placeholder="行政区域" options={['洮北区', '长岭县']} />
-                      <SelectField value={hsRenovation} onChange={setHsRenovation} placeholder="改造状态" options={['已完成', '施工中']} />
+                      <PickerField value={filterDraft?.hsRegion??""} onChange={(v)=>setFilterDraft(p=>({...p,hsRegion:v}))} placeholder="行政区域" options={['洮北区', '长岭县']} />
+                      <PickerField value={filterDraft?.hsRenovation??""} onChange={(v)=>setFilterDraft(p=>({...p,hsRenovation:v}))} placeholder="改造状态" options={['已完成', '施工中']} />
                     </div>
                     <div className="flex gap-2">
-                      <SelectField value={hsPlanYear} onChange={setHsPlanYear} placeholder="规划年份" options={['2022', '2023', '2024']} />
-                      <SelectField value={hsBuildYear} onChange={setHsBuildYear} placeholder="建设完成年份" options={['2023', '2024', '2025']} />
+                      <PickerField value={filterDraft?.hsPlanYear??""} onChange={(v)=>setFilterDraft(p=>({...p,hsPlanYear:v}))} placeholder="规划年份" options={['2022', '2023', '2024']} />
+                      <PickerField value={filterDraft?.hsBuildYear??""} onChange={(v)=>setFilterDraft(p=>({...p,hsBuildYear:v}))} placeholder="建设完成年份" options={['2023', '2024', '2025']} />
                     </div>
                     <div className="flex gap-2">
-                      <TextFilter value={hsName} onChange={setHsName} placeholder="农田名称" />
-                      <TextFilter value={hsCode} onChange={setHsCode} placeholder="农田编码" />
+                      <TextFilter value={filterDraft?.hsName??""} onChange={(v)=>setFilterDraft(p=>({...p,hsName:v}))} placeholder="农田名称" />
+                      <TextFilter value={filterDraft?.hsCode??""} onChange={(v)=>setFilterDraft(p=>({...p,hsCode:v}))} placeholder="农田编码" />
                     </div>
                   </div>
                 </section>
@@ -657,16 +732,16 @@ export default function MapDashboard() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex gap-2">
-                      <SelectField value={saRegion} onChange={setSaRegion} placeholder="行政区域" options={['洮北区']} />
-                      <SelectField value={saLevel} onChange={setSaLevel} placeholder="盐碱地等级" options={['轻度盐碱地', '中度盐碱地', '重度盐碱地']} />
+                      <PickerField value={filterDraft?.saRegion??""} onChange={(v)=>setFilterDraft(p=>({...p,saRegion:v}))} placeholder="行政区域" options={['洮北区']} />
+                      <PickerField value={filterDraft?.saLevel??""} onChange={(v)=>setFilterDraft(p=>({...p,saLevel:v}))} placeholder="盐碱地等级" options={['轻度盐碱地', '中度盐碱地', '重度盐碱地']} />
                     </div>
                     <div className="flex gap-2">
-                      <SelectField value={saType} onChange={setSaType} placeholder="盐碱地类型" options={['苏打盐碱地', '氯化物盐碱地']} />
+                      <PickerField value={filterDraft?.saType??""} onChange={(v)=>setFilterDraft(p=>({...p,saType:v}))} placeholder="盐碱地类型" options={['苏打盐碱地', '氯化物盐碱地']} />
                       <div className="flex-1" />
                     </div>
                     <div className="flex gap-2">
-                      <TextFilter value={saName} onChange={setSaName} placeholder="盐碱地名称" />
-                      <TextFilter value={saCode} onChange={setSaCode} placeholder="盐碱地编码" />
+                      <TextFilter value={filterDraft?.saName??""} onChange={(v)=>setFilterDraft(p=>({...p,saName:v}))} placeholder="盐碱地名称" />
+                      <TextFilter value={filterDraft?.saCode??""} onChange={(v)=>setFilterDraft(p=>({...p,saCode:v}))} placeholder="盐碱地编码" />
                     </div>
                   </div>
                 </section>
@@ -677,23 +752,23 @@ export default function MapDashboard() {
                 <section>
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-1 h-4 bg-[#0A4D4A] rounded-full" />
-                    <h4 className="text-sm font-bold text-slate-800">承包类型</h4>
+                    <h4 className="text-sm font-bold text-slate-800">种植筛选</h4>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {CROP_LAYER_META.map((l) => (
-                      <button
-                        key={l.id}
-                        onClick={() => toggleCropLayer(l.id)}
-                        className={cn(
-                          'px-4 py-2 rounded-lg text-xs font-medium border transition-colors',
-                          visibleCropLayers.has(l.id)
-                            ? 'bg-[#0D665E] text-white border-[#0D665E]'
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300',
-                        )}
-                      >
-                        {l.label}
-                      </button>
-                    ))}
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <PickerField
+                        value={[...(filterDraft?.cropLayers||getDefaultCropLayers())].join(',')}
+                        onChange={(v) => setFilterDraft((p: any) => {
+                          const n = new Set(p?.cropLayers || getDefaultCropLayers());
+                          const selected = v as string;
+                          if (n.has(selected) && n.size > 1) n.delete(selected);
+                          else if (!n.has(selected)) { n.clear(); n.add(selected); }
+                          return { ...p, cropLayers: n };
+                        })}
+                        placeholder="承包类型"
+                        options={CROP_LAYER_META.map(l => l.label)}
+                      />
+                    </div>
                   </div>
                 </section>
               )}
@@ -706,19 +781,21 @@ export default function MapDashboard() {
                     <h4 className="text-sm font-bold text-slate-800">设备筛选</h4>
                   </div>
                   <div className="space-y-2">
-                    <SelectField value={iotTypeFilter} onChange={setIotTypeFilter} placeholder="设备类型" options={['WEATHER_STATION', 'SOIL_SENSOR', 'SOIL_MOISTURE', 'CAMERA', 'SPORE_TRAP', 'PEST_MONITOR', 'FERTIGATION', 'HIGH_STANDARD']} />
-                    <TextFilter value={iotCodeFilter} onChange={setIotCodeFilter} placeholder="设备编号" />
-                    <TextFilter value={iotNameFilter} onChange={setIotNameFilter} placeholder="设备名称" />
+                    <PickerField value={filterDraft?.iotTypeFilter??"ALL"} onChange={(v)=>setFilterDraft(p=>({...p,iotTypeFilter:v}))} placeholder="设备类型" options={['WEATHER_STATION', 'SOIL_SENSOR', 'SOIL_MOISTURE', 'CAMERA', 'SPORE_TRAP', 'PEST_MONITOR', 'FERTIGATION', 'HIGH_STANDARD']} />
+                    <TextFilter value={filterDraft?.iotCodeFilter??""} onChange={(v)=>setFilterDraft(p=>({...p,iotCodeFilter:v}))} placeholder="设备编号" />
+                    <TextFilter value={filterDraft?.iotNameFilter??""} onChange={(v)=>setFilterDraft(p=>({...p,iotNameFilter:v}))} placeholder="设备名称" />
                   </div>
                 </section>
               )}
             </div>
+            )}
+            <div className="px-5 py-4 border-t border-slate-100 shrink-0"><button onClick={applyDraft} disabled={!filterDraft} className="w-full py-3 bg-[#0D665E] text-white rounded-2xl text-[14px] font-bold shadow-lg shadow-[#0D665E]/20 active:scale-[0.98] transition-all disabled:opacity-50">确定</button></div>
           </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* ═══════ 图层面板 ═══════ */}
+      {/* ═══════ 图层面板（右侧抽屉） ═══════ */}
       <AnimatePresence>
         {showLayerPanel && (
           <>
@@ -726,97 +803,96 @@ export default function MapDashboard() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => { setShowLayerPanel(false); setLayerExpanded(false); }}
-              className="absolute inset-0 z-30 bg-black/20"
+              onClick={() => setShowLayerPanel(false)}
+              className="absolute inset-0 z-30 bg-black/30"
             />
             <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: layerExpanded ? 0 : '35%' }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-              drag="y"
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_e, info) => {
-                if (info.offset.y < -30) setLayerExpanded(true);
-                else if (info.offset.y > 100) { setShowLayerPanel(false); setLayerExpanded(false); }
-                else setLayerExpanded(false);
-              }}
-              className="absolute bottom-0 left-0 right-0 z-40 bg-white rounded-t-2xl shadow-2xl flex flex-col"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="absolute top-0 bottom-0 right-0 z-40 bg-white shadow-2xl flex flex-col"
+              style={{ width: 'min(80vw, 320px)' }}
             >
-              <div className="flex justify-center pt-3 pb-1 shrink-0 touch-none">
-                <div className="w-10 h-1 bg-slate-200 rounded-full" />
+              <div className="flex items-center justify-between px-5 pt-12 pb-2 border-b border-slate-50 shrink-0">
+                <h3 className="text-[16px] font-bold text-slate-800">选择图层</h3>
+                <button
+                  onClick={() => setShowLayerPanel(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
-              <h3 className="text-[15px] font-bold text-slate-800 px-5 py-3">选择图层</h3>
-            <div className="px-5 pb-6 space-y-1">
-              {/* 土地资源图层 */}
-              {activeTab === 'land' && getAvailableLayers(user.role).map((l) => (
-                <button
-                  key={l.id}
-                  onClick={() => toggleLayer(l.id)}
-                  className={cn(
-                    'w-full flex items-center gap-4 px-4 py-4 rounded-2xl border-2 transition-colors',
-                    visibleLayers.has(l.id)
-                      ? 'border-[#0D665E] bg-[#E8F4F4]'
-                      : 'border-slate-100 bg-white',
-                  )}
-                >
-                  <div className={cn(
-                    'w-6 h-6 rounded-md flex items-center justify-center shrink-0',
-                    visibleLayers.has(l.id) ? 'bg-[#0D665E]' : 'border-2 border-slate-300',
-                  )}>
-                    {visibleLayers.has(l.id) && (
-                      <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+              <div className="flex-1 overflow-y-auto px-5 py-5 space-y-1">
+                {/* 土地资源图层 */}
+                {activeTab === 'land' && getAvailableLayers(user.role).map((l) => (
+                  <button
+                    key={l.id}
+                    onClick={() => toggleLayer(l.id)}
+                    className={cn(
+                      'w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-colors',
+                      visibleLayers.has(l.id)
+                        ? 'border-[#0D665E] bg-[#E8F4F4]'
+                        : 'border-slate-100 bg-white',
                     )}
-                  </div>
-                  <div className="w-4 h-4 rounded-sm shrink-0" style={{ backgroundColor: l.color }} />
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-bold text-slate-800">{l.label}</p>
-                    <p className="text-xs text-slate-400">{layerStats[l.id]} 个地块</p>
-                  </div>
-                </button>
-              ))}
-              {/* 种植分布图层 */}
-              {activeTab === 'crops' && CROP_LAYER_META.map((l) => (
-                <button
-                  key={l.id}
-                  onClick={() => toggleCropLayer(l.id)}
-                  className={cn(
-                    'w-full flex items-center gap-4 px-4 py-4 rounded-2xl border-2 transition-colors',
-                    visibleCropLayers.has(l.id)
-                      ? 'border-[#0D665E] bg-[#E8F4F4]'
-                      : 'border-slate-100 bg-white',
-                  )}
-                >
-                  <div className={cn(
-                    'w-6 h-6 rounded-md flex items-center justify-center shrink-0',
-                    visibleCropLayers.has(l.id) ? 'bg-[#0D665E]' : 'border-2 border-slate-300',
-                  )}>
-                    {visibleCropLayers.has(l.id) && (
-                      <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                  >
+                    <div className={cn(
+                      'w-6 h-6 rounded-md flex items-center justify-center shrink-0',
+                      visibleLayers.has(l.id) ? 'bg-[#0D665E]' : 'border-2 border-slate-300',
+                    )}>
+                      {visibleLayers.has(l.id) && (
+                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    <div className="w-4 h-4 rounded-sm shrink-0" style={{ backgroundColor: l.color }} />
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-bold text-slate-800">{l.label}</p>
+                      <p className="text-xs text-slate-400">{layerStats[l.id]} 个地块</p>
+                    </div>
+                  </button>
+                ))}
+                {/* 种植分布图层 */}
+                {activeTab === 'crops' && CROP_LAYER_META.map((l) => (
+                  <button
+                    key={l.id}
+                    onClick={() => toggleCropLayer(l.id)}
+                    className={cn(
+                      'w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border-2 transition-colors',
+                      visibleCropLayers.has(l.id)
+                        ? 'border-[#0D665E] bg-[#E8F4F4]'
+                        : 'border-slate-100 bg-white',
                     )}
-                  </div>
-                  <div className="w-4 h-4 rounded-sm shrink-0" style={{ backgroundColor: l.color }} />
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-bold text-slate-800">{l.label}</p>
-                    <p className="text-xs text-slate-400">
-                      {farmPlots.filter((p) => p.type === 'LEASING' && p.leaseType === l.id).length} 个地块
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </motion.div>
+                  >
+                    <div className={cn(
+                      'w-6 h-6 rounded-md flex items-center justify-center shrink-0',
+                      visibleCropLayers.has(l.id) ? 'bg-[#0D665E]' : 'border-2 border-slate-300',
+                    )}>
+                      {visibleCropLayers.has(l.id) && (
+                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    <div className="w-4 h-4 rounded-sm shrink-0" style={{ backgroundColor: l.color }} />
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-bold text-slate-800">{l.label}</p>
+                      <p className="text-xs text-slate-400">
+                        {farmPlots.filter((p) => p.type === 'LEASING' && p.leaseType === l.id).length} 个地块
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* ═══════ 底部分析条 ═══════ */}
-      <AnalysisBar
+      {/* ═══════ 底部分析条（智能感知/气象/详情打开时隐藏） ═══════ */}
+      {activeTab !== "iot" && !showWeatherLayer && !panelOpen && (
+        <AnalysisBar
         activeTab={activeTab}
         layerStats={layerStats}
         deviceStats={deviceStats}
@@ -825,7 +901,10 @@ export default function MapDashboard() {
           承租: farmPlots.filter((p) => p.type === 'LEASING' && p.leaseType === '承租').length,
         }}
         role={user.role}
+        landStats={landStats}
+        cropAnalysisData={cropAnalysisData}
       />
+      )}
     </div>
   );
 }
@@ -973,18 +1052,6 @@ function LeasingDetail({ plot }: { plot: MapPlot }) {
   const area = plot.inputArea || plot.area;
   const leaseLabel = plot.leaseType === '统种' ? '统种地' : plot.leaseType === '承租' ? '承租地' : '承包地';
 
-  const opGroups = {
-    '播种': operations.filter((o: FieldOperation) => o.type === '播种'),
-    '田间管理': operations.filter((o: FieldOperation) => o.type === '田间管理'),
-    '收获': operations.filter((o: FieldOperation) => o.type === '收获'),
-  };
-
-  const OP_COLORS: Record<string, { bg: string; dot: string; text: string }> = {
-    '播种': { bg: 'bg-emerald-50', dot: 'bg-emerald-500', text: 'text-emerald-700' },
-    '田间管理': { bg: 'bg-amber-50', dot: 'bg-amber-500', text: 'text-amber-700' },
-    '收获': { bg: 'bg-blue-50', dot: 'bg-blue-500', text: 'text-blue-700' },
-  };
-
   // ─── 承租地详情 ───
   if (plot.leaseType === '承租') {
     return (
@@ -1070,110 +1137,198 @@ function LeasingDetail({ plot }: { plot: MapPlot }) {
         </div>
       </section>
 
-      {/* ═══ 田间作业档案 ═══ */}
+      {/* ═══ 田间作业档案 — 时间轴 ═══ */}
       <section>
         <SectionTitle>田间作业档案</SectionTitle>
-        <div className="space-y-3">
-          {operations.length === 0 && (
-            <p className="text-xs text-slate-400 text-center py-4">暂无作业记录</p>
-          )}
-          {(['播种', '田间管理', '收获'] as const).map((opType) => {
-            const items = opGroups[opType];
-            if (items.length === 0) return null;
-            const c = OP_COLORS[opType];
-            return (
-              <div key={opType}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-                  <span className={`text-xs font-bold ${c.text}`}>{opType}</span>
-                  <span className="text-[10px] text-slate-400">{items.length} 条</span>
-                </div>
-                <div className="space-y-1.5">
-                  {items.map((op: FieldOperation) => (
-                    <div key={op.id} className={`${c.bg} rounded-xl px-4 py-3`}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[13px] font-bold text-slate-700">{op.item}</span>
-                        <span className="text-[11px] text-slate-400">{op.date}</span>
-                      </div>
-                      {op.detail && (
-                        <p className="text-[11px] text-slate-500 mt-1">{op.detail}</p>
-                      )}
-                      {op.variety && (
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {op.crop} · {op.variety}
-                        </p>
-                      )}
+        {operations.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-8">暂无作业记录</p>
+        ) : (
+          <div className="relative pl-4">
+            {/* 竖线 */}
+            <div className="absolute left-[8px] top-1 bottom-1 w-0.5 bg-slate-200 rounded-full" />
+            <div className="space-y-2">
+              {[...operations]
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .map((op, i) => (
+                <div key={op.id} className="relative">
+                  {/* 时间点 */}
+                  <div className={cn(
+                    'absolute left-[-16px] top-2 w-[12px] h-[12px] rounded-full border-2 border-white',
+                    op.type === '播种' ? 'bg-emerald-500' : op.type === '田间管理' ? 'bg-amber-500' : 'bg-blue-500',
+                  )} />
+                  {/* 卡片 */}
+                  <div className="bg-slate-50 rounded-lg px-3 py-2">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[12px] font-bold text-slate-700">{op.item}</span>
+                      <span className={cn(
+                        'text-[8px] font-bold px-1.5 py-px rounded-md',
+                        op.type === '播种' ? 'bg-emerald-50 text-emerald-600' : op.type === '田间管理' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600',
+                      )}>{op.type}</span>
                     </div>
-                  ))}
+                    {op.detail && (
+                      <p className="text-[10px] text-slate-500 mb-0.5">{op.detail}</p>
+                    )}
+                    <div className="flex items-center gap-2 text-[9px] text-slate-400">
+                      <span>{op.date}</span>
+                      {op.crop && <span>{op.crop}{op.variety ? ` · ${op.variety}` : ''}</span>}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ═══ 成本统计 ═══ */}
       <section>
         <SectionTitle>成本统计</SectionTitle>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: '农资总成本', value: `${(area * 0.28).toFixed(0)} 元` },
-            { label: '种子投入', value: `${(area * 0.08).toFixed(0)} 元` },
-            { label: '化肥投入', value: `${(area * 0.10).toFixed(0)} 元` },
-            { label: '农药投入', value: `${(area * 0.05).toFixed(0)} 元` },
-            { label: '农机作业费', value: `${(area * 0.12).toFixed(0)} 元` },
-            { label: '人工成本', value: `${(area * 0.08).toFixed(0)} 元` },
-            { label: '灌溉费用', value: `${(area * 0.03).toFixed(0)} 元` },
-            { label: '其他支出', value: `${(area * 0.02).toFixed(0)} 元` },
-          ].map((stat, i) => (
-            <div key={i} className="bg-slate-50 rounded-xl p-3">
-              <p className="text-[10px] text-slate-400 font-medium mb-1">{stat.label}</p>
-              <p className="text-[13px] font-bold text-slate-700">{stat.value}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ═══ 农资明细 ═══ */}
-      <section>
-        <SectionTitle>农资明细</SectionTitle>
-        <div className="space-y-2">
-          {[
-            { name: '郑单958 玉米种', spec: '4500粒/袋', qty: `${(area / 500).toFixed(0)}袋`, unitPrice: '85元', total: `${(area / 500 * 85).toFixed(0)}元` },
-            { name: '复合肥 (15-15-15)', spec: '50kg/袋', qty: `${(area / 100).toFixed(0)}袋`, unitPrice: '180元', total: `${(area / 100 * 180).toFixed(0)}元` },
-            { name: '尿素', spec: '50kg/袋', qty: `${(area / 200).toFixed(0)}袋`, unitPrice: '140元', total: `${(area / 200 * 140).toFixed(0)}元` },
-            { name: '除草剂 (草甘膦)', spec: '1L/瓶', qty: `${(area / 300).toFixed(0)}瓶`, unitPrice: '45元', total: `${(area / 300 * 45).toFixed(0)}元` },
-            { name: '杀虫剂 (吡虫啉)', spec: '500ml/瓶', qty: `${(area / 400).toFixed(0)}瓶`, unitPrice: '35元', total: `${(area / 400 * 35).toFixed(0)}元` },
-          ].map((m, i) => (
-            <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-bold text-slate-700">{m.name}</p>
-                <p className="text-[10px] text-slate-400">{m.spec} · {m.qty} · 单价{m.unitPrice}</p>
+        {(() => {
+          const mu = area / 666.67;
+          const seed = area * 0.08, pesticide = area * 0.05, fertilizer = area * 0.10, additive = area * 0.02;
+          const machine = area * 0.12, labor = area * 0.08, irrigation = area * 0.03, other = area * 0.02;
+          const agriCost = seed + pesticide + fertilizer + additive;
+          const machCost = machine + labor;
+          const otherCost = irrigation + other;
+          const total = agriCost + machCost + otherCost;
+          const categories = [
+            { label: '总农资', perLabel: '亩农资', value: agriCost, perValue: agriCost / mu, pct: agriCost/total*100, color: '#0D665E' },
+            { label: '总农机', perLabel: '亩油耗', value: machCost, perValue: machCost / mu, pct: machCost/total*100, color: '#2563EB' },
+            { label: '其他', perLabel: '亩其他', value: otherCost, perValue: otherCost / mu, pct: otherCost/total*100, color: '#94A3B8' },
+          ];
+          const r = 50, w = 14, c = 65, circ = 2 * Math.PI * r;
+          let off = 0;
+          return (
+            <div>
+              <div className="flex items-center gap-4">
+                <svg width="130" height="130" viewBox="0 0 130 130" className="shrink-0">
+                  {categories.map((d, i) => {
+                    const dashLen = circ * (d.pct / 100);
+                    const el = (
+                      <circle key={i} cx={c} cy={c} r={r} fill="none" stroke={d.color} strokeWidth={w}
+                        strokeDasharray={`${dashLen} ${circ - dashLen}`} strokeDashoffset={-off}
+                        transform="rotate(-90 65 65)" />
+                    );
+                    off += dashLen;
+                    return el;
+                  })}
+                  <text x="65" y="60" textAnchor="middle" fill="#1E293B" fontSize="17" fontWeight="800">¥{total.toFixed(0)}</text>
+                  <text x="65" y="75" textAnchor="middle" fill="#94A3B8" fontSize="9">总成本</text>
+                </svg>
+                <div className="flex-1 space-y-1.5">
+                  {categories.map((d) => (
+                    <div key={d.label} className="flex items-center gap-1.5 text-[10px]">
+                      <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: d.color }} />
+                      <span className="text-slate-600 font-medium w-10">{d.label}</span>
+                      <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${d.pct}%`, backgroundColor: d.color }} />
+                      </div>
+                      <span className="font-bold text-slate-700 w-8 text-right">{d.pct.toFixed(0)}%</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <span className="text-[13px] font-bold text-blue-700 ml-3">{m.total}</span>
+              {/* 三类明细 */}
+              <div className="mt-4 space-y-3">
+                {/* 农资 */}
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <div className="flex items-center mb-2">
+                    <div className="w-1 h-5 rounded-full mr-2 shrink-0" style={{ backgroundColor: '#0D665E' }} />
+                    <span className="text-[11px] font-bold text-slate-700 flex-1">总农资 <span className="text-slate-400 font-normal">¥{agriCost.toFixed(0)}</span></span>
+                    <span className="text-[10px] text-slate-400 mr-2">亩农资 ¥{(agriCost/mu).toFixed(2)}</span>
+                    <span className="text-[13px] font-extrabold text-slate-700">{(agriCost/total*100).toFixed(0)}<span className="text-[10px] text-slate-400">%</span></span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { l: '种子', v: seed, c: '#0D665E' },
+                      { l: '农药', v: pesticide, c: '#DC2626' },
+                      { l: '肥料', v: fertilizer, c: '#E8A838' },
+                      { l: '助剂', v: additive, c: '#7C3AED' },
+                    ].map((s) => (
+                      <div key={s.l} className="bg-white rounded-lg p-2 text-center">
+                        <p className="text-[9px] text-slate-400">{s.l}</p>
+                        <p className="text-[10px] font-bold text-slate-700">¥{s.v.toFixed(0)}</p>
+                        <p className="text-[8px] text-slate-400">{(s.v/agriCost*100).toFixed(0)}%</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* 农机 */}
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <div className="flex items-center mb-2">
+                    <div className="w-1 h-5 rounded-full mr-2 shrink-0" style={{ backgroundColor: '#2563EB' }} />
+                    <span className="text-[11px] font-bold text-slate-700 flex-1">总农机 <span className="text-slate-400 font-normal">¥{machCost.toFixed(0)}</span></span>
+                    <span className="text-[10px] text-slate-400 mr-2">亩油耗 ¥{(machCost/mu).toFixed(2)}</span>
+                    <span className="text-[13px] font-extrabold text-slate-700">{(machCost/total*100).toFixed(0)}<span className="text-[10px] text-slate-400">%</span></span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[
+                      { l: '农机作业', v: machine },
+                      { l: '人工成本', v: labor },
+                    ].map((s) => (
+                      <div key={s.l} className="flex-1 bg-white rounded-lg p-2">
+                        <p className="text-[9px] text-slate-400">{s.l}</p>
+                        <p className="text-[10px] font-bold text-slate-700">¥{s.v.toFixed(0)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* 其他 */}
+                <div className="bg-slate-50 rounded-xl p-3">
+                  <div className="flex items-center mb-2">
+                    <div className="w-1 h-5 rounded-full mr-2 shrink-0" style={{ backgroundColor: '#94A3B8' }} />
+                    <span className="text-[11px] font-bold text-slate-700 flex-1">其他 <span className="text-slate-400 font-normal">¥{otherCost.toFixed(0)}</span></span>
+                    <span className="text-[10px] text-slate-400 mr-2">亩其他 ¥{(otherCost/mu).toFixed(2)}</span>
+                    <span className="text-[13px] font-extrabold text-slate-700">{(otherCost/total*100).toFixed(0)}<span className="text-[10px] text-slate-400">%</span></span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    {[
+                      { l: '灌溉费用', v: irrigation },
+                      { l: '其他支出', v: other },
+                    ].map((s) => (
+                      <div key={s.l} className="flex-1 bg-white rounded-lg p-2">
+                        <p className="text-[9px] text-slate-400">{s.l}</p>
+                        <p className="text-[10px] font-bold text-slate-700">¥{s.v.toFixed(0)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
+          );
+        })()}
       </section>
 
       {/* ═══ 产量统计 ═══ */}
       <section>
         <SectionTitle>产量统计</SectionTitle>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: '预估亩产', value: `${(plot.crop === '玉米' ? 1200 : plot.crop === '小麦' ? 700 : plot.crop === '大豆' ? 350 : 800)} 斤/亩` },
-            { label: '预估总产', value: `${(area * (plot.crop === '玉米' ? 0.0018 : plot.crop === '小麦' ? 0.00105 : plot.crop === '大豆' ? 0.000525 : 0.0012)).toFixed(1)} 万斤` },
-            { label: '去年亩产', value: `${(plot.crop === '玉米' ? 1100 : plot.crop === '小麦' ? 650 : plot.crop === '大豆' ? 320 : 750)} 斤/亩` },
-            { label: '去年总产', value: `${(area * (plot.crop === '玉米' ? 0.00165 : plot.crop === '小麦' ? 0.000975 : plot.crop === '大豆' ? 0.00048 : 0.001125)).toFixed(1)} 万斤` },
-            { label: '同比变化', value: `${(plot.crop === '玉米' ? '+9.1' : plot.crop === '小麦' ? '+7.7' : plot.crop === '大豆' ? '+9.4' : '+6.7')}%`, up: true },
-            { label: '商品率', value: '92%' },
-          ].map((stat, i) => (
-            <div key={i} className="bg-slate-50 rounded-xl p-3">
-              <p className="text-[10px] text-slate-400 font-medium mb-1">{stat.label}</p>
-              <p className={`text-[13px] font-bold ${(stat as any).up ? 'text-emerald-600' : 'text-slate-700'}`}>{stat.value}</p>
+        {(() => {
+          const mu = area / 666.67;
+          const plantMu = mu;
+          const swathMu = mu * 0.92;
+          const harvestMu = mu * 0.88;
+          const muYield = plot.crop === '玉米' ? 1200 : plot.crop === '小麦' ? 700 : plot.crop === '大豆' ? 350 : 800;
+          const estProduction = harvestMu * muYield;
+          const incomingProd = estProduction * 0.85;
+          const items = [
+            { label: '播种面积', value: plantMu.toFixed(1), unit: '亩' },
+            { label: '割晒面积', value: swathMu.toFixed(1), unit: '亩' },
+            { label: '收获面积', value: harvestMu.toFixed(1), unit: '亩' },
+            { label: '预估产量', value: (estProduction / 10000).toFixed(2), unit: '万斤' },
+            { label: '进场产量', value: (incomingProd / 10000).toFixed(2), unit: '万斤' },
+            { label: '亩产量', value: muYield.toFixed(0), unit: '斤/亩' },
+          ];
+          return (
+            <div className="grid grid-cols-3 gap-2">
+              {items.map((item) => (
+                <div key={item.label} className="bg-slate-50 rounded-xl p-3 text-center">
+                  <p className="text-[10px] text-slate-400 font-medium mb-1">{item.label}</p>
+                  <p className="text-[15px] font-extrabold text-slate-800">{item.value}<span className="text-[10px] text-slate-400 font-medium ml-0.5">{item.unit}</span></p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          );
+        })()}
       </section>
     </div>
   );
@@ -1181,24 +1336,102 @@ function LeasingDetail({ plot }: { plot: MapPlot }) {
 
 /* ═══════════════════════════════ 筛选辅助组件 ═══════════════════════════════ */
 
-function SelectField({ value, onChange, placeholder, options }: {
+function PickerField({ value, onChange, placeholder, options }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   options: string[];
 }) {
+  const [open, setOpen] = useState(false);
+  const [temp, setTemp] = useState(value);
+
+  const display = value || placeholder;
+  const isPlaceholder = !value;
+
   return (
     <div className="flex-1">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 outline-none appearance-none"
+      <button
+        type="button"
+        onClick={() => { setOpen(true); setTemp(value); }}
+        className={cn(
+          'w-full px-3 py-2.5 rounded-lg text-xs text-left border outline-none transition-colors',
+          isPlaceholder
+            ? 'bg-slate-50 border-slate-200 text-slate-400'
+            : 'bg-slate-50 border-slate-200 text-slate-700 font-medium',
+        )}
       >
-        <option value="">{placeholder}</option>
-        {options.map((o) => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-      </select>
+        <span className="flex items-center justify-between">
+          <span>{display}</span>
+          <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className={cn(isPlaceholder ? 'text-slate-300' : 'text-slate-400')}>
+            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </span>
+      </button>
+
+      {/* iOS 风格滚轮弹出层 — Portal 到 body 避免抽屉裁切 */}
+      {open && createPortal(
+        <>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[200] bg-black/40" onClick={() => setOpen(false)} />
+          <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ type: 'spring', damping: 28, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 z-[201] bg-white rounded-t-2xl shadow-2xl">
+            {/* 头部 */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+              <button
+                onClick={() => setOpen(false)}
+                className="text-[15px] text-slate-400 font-medium px-2"
+              >
+                取消
+              </button>
+              <span className="text-[13px] font-bold text-slate-500">{placeholder}</span>
+              <button
+                onClick={() => { onChange(temp); setOpen(false); }}
+                className="text-[15px] text-[#0D665E] font-bold px-2"
+              >
+                确定
+              </button>
+            </div>
+            {/* 滚轮区域 */}
+            <div className="relative h-[220px] overflow-hidden bg-slate-50/50">
+              {/* 中心高亮条 */}
+              <div className="absolute top-1/2 -translate-y-1/2 left-4 right-4 h-10 bg-white/50 rounded-lg border border-slate-100/50 pointer-events-none z-0" />
+              {/* 渐变遮罩 */}
+              <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-slate-50/90 to-transparent pointer-events-none z-10" />
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-slate-50/90 pointer-events-none z-10" />
+              {/* 选项列表 */}
+              <div
+                className="h-full overflow-y-auto snap-y snap-mandatory py-[90px] scrollbar-none"
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  const itemH = 40;
+                  const idx = Math.round((el.scrollTop + 2) / itemH);
+                  const opt = options[Math.min(Math.max(idx, 0), options.length - 1)];
+                  if (opt !== undefined) setTemp(opt);
+                }}
+              >
+                <div className="h-2 snap-start" /> {/* 顶部占位 */}
+                {options.map((o) => (
+                  <button
+                    key={o}
+                    type="button"
+                    onClick={() => { setTemp(o); }}
+                    className={cn(
+                      'w-full h-10 flex items-center justify-center text-[15px] snap-center transition-colors relative z-10',
+                      temp === o
+                        ? 'text-[#0D665E] font-bold'
+                        : 'text-slate-400 font-medium',
+                    )}
+                  >
+                    {o}
+                  </button>
+                ))}
+                <div className="h-2 snap-start" /> {/* 底部占位 */}
+              </div>
+            </div>
+            {/* 安全区 */}
+            <div className="h-6 bg-white" />
+          </motion.div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }
@@ -1227,7 +1460,7 @@ function deviceTypeLabel(t: string): string {
   const m: Record<string, string> = {
     WEATHER_STATION: '气象站', SOIL_SENSOR: '土壤传感器', SOIL_MOISTURE: '土壤墒情站',
     CAMERA: '摄像头', SPORE_TRAP: '孢子捕捉仪', PEST_MONITOR: '虫情测报设备',
-    FERTIGATION: '水肥一体机', HIGH_STANDARD: '智能控制终端',
+    FERTIGATION: '水肥一体机', CONTROLLER: '智能控制终端', SMART_VALVE: '智能水阀',
   };
   return m[t] || '物联网设备';
 }
@@ -1250,7 +1483,7 @@ function genHistory(device: Device): { time: string; value: number; metric: stri
     ? [{ k: '虫量(只)', base: 30, amp: 35 }]
     : device.type === 'FERTIGATION'
     ? [{ k: '流量(L/s)', base: 2.2, amp: 1.2 }, { k: 'EC(mS/cm)', base: 1.7, amp: 0.5 }, { k: '压力(MPa)', base: 0.3, amp: 0.1 }]
-    : device.type === 'HIGH_STANDARD'
+    : device.type === 'CONTROLLER'
     ? [{ k: '电压(V)', base: 12, amp: 1.5 }, { k: '电流(A)', base: 2, amp: 0.8 }]
     : [{ k: '数据值', base: 50, amp: 25 }];
 
@@ -1426,12 +1659,26 @@ function DeviceDetail({ device }: { device: Device }) {
             )}
             {device.type === 'CAMERA' && (
               <>
-                <ControlBtn label="📸 抓拍照片" color="blue" />
-                <ControlBtn label="↻ 云台复位" color="slate" />
-                <div className="grid grid-cols-3 gap-2">
-                  {['⬆', '⬅', '➡', '⬇', '🔍+', '🔍−'].map((c) => (
-                    <button key={c} className="h-10 rounded-xl bg-slate-50 border border-slate-200 text-sm active:bg-slate-100 font-medium">{c}</button>
-                  ))}
+                <div className="bg-slate-900 rounded-xl aspect-video flex items-center justify-center relative overflow-hidden">
+                  <span className="text-white/10 text-6xl">📹</span>
+                  <span className="absolute bottom-2 left-2 text-[9px] text-white/40 bg-black/30 px-2 py-0.5 rounded">{device.name}</span>
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="absolute top-2 right-5 text-[9px] text-red-400 font-bold">LIVE</span>
+                </div>
+                {/* 圆形方向操作盘 */}
+                <div className="relative w-[180px] h-[180px] mx-auto mt-4">
+                  {/* 外圈装饰 */}
+                  <div className="absolute inset-0 rounded-full border-2 border-slate-100 bg-slate-50/50" />
+                  {/* 上 */}
+                  <button className="absolute left-1/2 -translate-x-1/2 top-2 w-11 h-11 rounded-full bg-white border border-slate-200 shadow-sm text-lg active:bg-slate-100 active:scale-95 transition-all font-medium flex items-center justify-center">⬆</button>
+                  {/* 下 */}
+                  <button className="absolute left-1/2 -translate-x-1/2 bottom-2 w-11 h-11 rounded-full bg-white border border-slate-200 shadow-sm text-lg active:bg-slate-100 active:scale-95 transition-all font-medium flex items-center justify-center">⬇</button>
+                  {/* 左 */}
+                  <button className="absolute top-1/2 -translate-y-1/2 left-2 w-11 h-11 rounded-full bg-white border border-slate-200 shadow-sm text-lg active:bg-slate-100 active:scale-95 transition-all font-medium flex items-center justify-center">⬅</button>
+                  {/* 右 */}
+                  <button className="absolute top-1/2 -translate-y-1/2 right-2 w-11 h-11 rounded-full bg-white border border-slate-200 shadow-sm text-lg active:bg-slate-100 active:scale-95 transition-all font-medium flex items-center justify-center">➡</button>
+                  {/* 中心回中 */}
+                  <button className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-slate-800 border-2 border-white shadow-md text-lg active:bg-slate-700 active:scale-95 transition-all font-medium flex items-center justify-center text-white">🏠</button>
                 </div>
               </>
             )}
@@ -1447,7 +1694,7 @@ function DeviceDetail({ device }: { device: Device }) {
                 <ControlBtn label="📡 切换上报频率" color="slate" />
               </>
             )}
-            {![ 'FERTIGATION', 'CAMERA', 'SPORE_TRAP', 'PEST_MONITOR', 'WEATHER_STATION' ].includes(device.type as string) && (
+            {![ 'FERTIGATION', 'CAMERA', 'SPORE_TRAP', 'PEST_MONITOR', 'WEATHER_STATION', 'CONTROLLER', 'SMART_VALVE' ].includes(device.type as string) && (
               <ControlBtn label="🔄 重启设备" color="blue" />
             )}
           </div>
@@ -1460,13 +1707,15 @@ function DeviceDetail({ device }: { device: Device }) {
 /* ═══════════════════════════════ 底部分析条 ═══════════════════════════════ */
 
 function AnalysisBar({
-  activeTab, layerStats, deviceStats, cropStats, role,
+  activeTab, layerStats, deviceStats, cropStats, role, landStats, cropAnalysisData,
 }: {
   activeTab: string;
   layerStats: Record<string, number>;
   deviceStats: { total: number; online: number; fault: number };
   cropStats: Record<string, number>;
   role: UserRole;
+  landStats: Record<string, any>;
+  cropAnalysisData: Record<string, any>;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -1488,14 +1737,14 @@ function AnalysisBar({
       {!expanded && (
         <motion.div
           initial={{ y: 100 }} animate={{ y: 0 }}
-          className="absolute bottom-0 left-2 right-2 z-20 mb-1"
+          className="fixed left-2 right-2 z-50" style={{bottom:"72px"}}
         >
           <button
             onClick={() => setExpanded(true)}
             className="w-full bg-white/90 backdrop-blur rounded-2xl px-4 py-2.5 shadow-lg border border-slate-200/60 flex items-center gap-2 active:scale-[0.98] transition-transform"
           >
             <span className="text-xs">📊</span>
-            <span className="text-[11px] text-slate-600 font-medium truncate flex-1 text-left">{summary}</span>
+            <span className="text-[11px] text-slate-600 font-medium truncate flex-1 text-left">{landStats.farmLabel} · {summary}</span>
             <ChevronUp size={14} className="text-slate-400 shrink-0" />
           </button>
         </motion.div>
@@ -1523,12 +1772,12 @@ function AnalysisBar({
                 <div className="w-10 h-1 bg-slate-200 rounded-full" />
               </div>
               <div className="px-5 py-3 border-b border-slate-50 flex items-center justify-between shrink-0">
-                <h3 className="text-[15px] font-bold text-slate-800">数据分析</h3>
+                <h3 className="text-[15px] font-bold text-slate-800">{landStats.farmLabel} · 数据分析</h3>
                 <button onClick={() => setExpanded(false)} className="text-xs text-slate-400 font-medium">收起</button>
               </div>
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 pb-8">
-                {activeTab === 'land' && (role === 'LAND_COMPANY_ADMIN' ? <LandCompanyAnalysis /> : <LandAnalysis />)}
-                {activeTab === 'crops' && <CropAnalysis />}
+                {activeTab === 'land' && (role === 'LAND_COMPANY_ADMIN' ? <LandCompanyAnalysis d={landStats} /> : <LandAnalysis d={landStats} />)}
+                {activeTab === 'crops' && <CropAnalysis d={cropAnalysisData} />}
                 {activeTab === 'iot' && (
                   <>
                     <div className="grid grid-cols-2 gap-3 mb-4">
@@ -1573,8 +1822,8 @@ function AnalysisBar({
 
 /* ═══════════════════════════════ 土地分析 ═══════════════════════════════ */
 
-function LandAnalysis() {
-  const d = mockLandAnalysis;
+function LandAnalysis({ d }: { d: Record<string, any> }) {
+  if (!d?.landUse) return <div className="py-20 text-center text-slate-400 text-sm">加载中...</div>;
 
   // SVG donut 参数
   const donutR = 56;
@@ -1589,7 +1838,7 @@ function LandAnalysis() {
       <section className="bg-slate-50 rounded-2xl p-5">
         <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">确权面积统计</h4>
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="bg-white rounded-xl p-3"><p className="text-[10px] text-slate-400">集团总面积</p><p className="text-lg font-bold text-slate-800">{d.totalArea}<span className="text-xs text-slate-400 ml-0.5">万亩</span></p></div>
+          <div className="bg-white rounded-xl p-3"><p className="text-[10px] text-slate-400">{d.isFarmView ? '农场总面积' : '集团总面积'}</p><p className="text-lg font-bold text-slate-800">{d.totalArea}<span className="text-xs text-slate-400 ml-0.5">万亩</span></p></div>
           <div className="bg-white rounded-xl p-3"><p className="text-[10px] text-slate-400">已确权面积</p><p className="text-lg font-bold text-emerald-600">{d.confirmedArea}<span className="text-xs text-slate-400 ml-0.5">万亩</span></p></div>
           <div className="bg-white rounded-xl p-3"><p className="text-[10px] text-slate-400">未确权面积</p><p className="text-lg font-bold text-slate-600">{d.unconfirmedArea}<span className="text-xs text-slate-400 ml-0.5">万亩</span></p></div>
           <div className="bg-white rounded-xl p-3"><p className="text-[10px] text-slate-400">确权完成率</p><p className="text-lg font-bold text-amber-600">{d.confirmRate}<span className="text-xs text-slate-400 ml-0.5">%</span></p></div>
@@ -1605,7 +1854,7 @@ function LandAnalysis() {
         <section className="bg-slate-50 rounded-2xl p-5">
           <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">确权面积分布</h4>
           <div className="space-y-2">
-            {d.rightsDistribution.map((r) => (
+            {(d.rightsDistribution||[]).map((r: any) => (
               <div key={r.label} className="flex items-center gap-2 text-[11px]">
                 <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: r.color }} />
                 <span className="text-slate-600 flex-1 truncate">{r.label}</span>
@@ -1619,7 +1868,7 @@ function LandAnalysis() {
         <section className="bg-slate-50 rounded-2xl p-5 flex flex-col items-center">
           <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider self-start">土地利用占比</h4>
           <svg width="140" height="140" viewBox="0 0 140 140">
-            {d.landUse.reduce((acc: any[], item, i) => {
+            {(d.landUse||[]).reduce((acc: any[], item: any, i: number) => {
               const pct = item.pct / 100;
               const dashLen = circum * pct;
               const dashGap = circum - dashLen;
@@ -1639,7 +1888,7 @@ function LandAnalysis() {
             <text x="70" y="82" textAnchor="middle" fill="#64748b" fontSize="11">54.15%</text>
           </svg>
           <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
-            {d.landUse.map((r) => (
+            {(d.landUse||[]).map((r: any) => (
               <span key={r.label} className="text-[10px] text-slate-500 flex items-center gap-1">
                 <span className="w-2 h-2 rounded-sm inline-block" style={{ backgroundColor: r.color }} />{r.label} {r.pct}%
               </span>
@@ -1648,11 +1897,13 @@ function LandAnalysis() {
         </section>
       </div>
 
+      {/* 4-6 多农场对比（仅全集团时显示） */}
+      {!d.isFarmView && (<>
       {/* 4. 各农场土地类型 */}
       <section className="bg-slate-50 rounded-2xl p-5">
-        <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">各农场土地类型</h4>
+        <h4 className="text-xs font-bold text-slate-500 mb-3">各农场土地类型</h4>
         <div className="space-y-3">
-          {d.farmLandTypes.map((f) => {
+          {(d.farmLandTypes||[]).map((f: any) => {
             const total = f.耕地 + f.草地 + f.其他 + f.建设用地;
             return (
               <div key={f.farm}>
@@ -1676,7 +1927,7 @@ function LandAnalysis() {
       <section className="bg-slate-50 rounded-2xl p-5">
         <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">各农场确权对比</h4>
         <div className="space-y-3">
-          {d.farmRights.map((f) => {
+          {(d.farmRights||[]).map((f: any) => {
             const total = f.已发证 + f.已登记未发证 + f.已确权未登记 + f.未确权;
             const colors = ['#0D665E', '#2D9F7A', '#E8A838', '#CBD5E1'];
             return (
@@ -1704,9 +1955,9 @@ function LandAnalysis() {
 
       {/* 6. 各行政区确权占比 */}
       <section className="bg-slate-50 rounded-2xl p-5">
-        <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">各行政区确权占比</h4>
+        <h4 className="text-xs font-bold text-slate-500 mb-3">各行政区确权占比</h4>
         <div className="space-y-2">
-          {d.regionRights.map((r) => (
+          {(d.regionRights||[]).map((r: any) => (
             <div key={r.region} className="flex items-center gap-2">
               <span className="text-[11px] text-slate-600 w-14 shrink-0">{r.region}</span>
               <div className="flex-1 h-5 bg-white rounded-full overflow-hidden">
@@ -1719,14 +1970,14 @@ function LandAnalysis() {
           ))}
         </div>
       </section>
+      </>)}
     </div>
   );
 }
 
 /* ═══════════════════════════════ 土地资源公司分析 ═══════════════════════════════ */
 
-function LandCompanyAnalysis() {
-  const d = mockLandCompanyAnalysis;
+function LandCompanyAnalysis({ d }: { d: Record<string, any> }) {
   return (
     <div className="space-y-4">
       {/* 高标准农田 */}
@@ -1734,30 +1985,35 @@ function LandCompanyAnalysis() {
         <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">高标准农田</h4>
         <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="bg-white rounded-xl p-3 text-center">
-            <p className="text-lg font-bold text-[#2D9F7A]">{d.totalHighStandard.toLocaleString()}</p>
+            <p className="text-lg font-bold text-[#2D9F7A]">{(d.totalHighStandard||0).toLocaleString()}</p>
             <p className="text-[10px] text-slate-400">总面积（亩）</p>
           </div>
           <div className="bg-white rounded-xl p-3 text-center">
-            <p className="text-lg font-bold text-[#2D9F7A]">{d.highStandardByFarm.length}</p>
-            <p className="text-[10px] text-slate-400">覆盖农场</p>
+            <p className="text-lg font-bold text-[#2D9F7A]">{(d.highStandardByFarm||[]).length}</p>
+            <p className="text-[10px] text-slate-400">{d.isFarmView ? '地块数' : '覆盖农场'}</p>
           </div>
           <div className="bg-white rounded-xl p-3 text-center">
-            <p className="text-lg font-bold text-[#2D9F7A]">{d.highStandardByFarm.reduce((s, f) => s + f.plots, 0)}</p>
+            <p className="text-lg font-bold text-[#2D9F7A]">{(d.highStandardByFarm||[]).reduce((s: number, f: any) => s + (f.plots||0), 0)}</p>
             <p className="text-[10px] text-slate-400">地块数</p>
           </div>
         </div>
-        <p className="text-[11px] text-slate-400 font-medium mb-2">各农场面积</p>
-        <div className="space-y-2">
-          {d.highStandardByFarm.map((item) => (
-            <div key={item.farm} className="flex items-center gap-2">
-              <span className="text-[11px] text-slate-600 w-16 shrink-0 truncate">{item.farm}</span>
-              <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${(item.area / d.totalHighStandard) * 100}%`, backgroundColor: item.color }} />
-              </div>
-              <span className="text-[11px] font-semibold text-slate-700 w-18 text-right shrink-0">{item.area.toLocaleString()}亩</span>
+        {/* 各农场面积 —— 仅全集团显示 */}
+        {!d.isFarmView && (
+          <>
+            <p className="text-[11px] text-slate-400 font-medium mb-2">各农场面积</p>
+            <div className="space-y-2">
+              {(d.highStandardByFarm||[]).map((item: any) => (
+                <div key={item.farm} className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-600 w-16 shrink-0 truncate">{item.farm}</span>
+                  <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${(item.area / d.totalHighStandard) * 100}%`, backgroundColor: item.color }} />
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-700 w-18 text-right shrink-0">{item.area.toLocaleString()}亩</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </section>
 
       {/* 盐碱地 */}
@@ -1765,22 +2021,39 @@ function LandCompanyAnalysis() {
         <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">盐碱地</h4>
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="bg-white rounded-xl p-3 text-center">
-            <p className="text-lg font-bold text-[#E8A838]">{d.totalSaline.toLocaleString()}</p>
+            <p className="text-lg font-bold text-[#E8A838]">{(d.totalSaline||0).toLocaleString()}</p>
             <p className="text-[10px] text-slate-400">总面积（亩）</p>
           </div>
           <div className="bg-white rounded-xl p-3 text-center">
-            <p className="text-lg font-bold text-[#E8A838]">{d.salineByLevel.length}</p>
+            <p className="text-lg font-bold text-[#E8A838]">{(d.salineByLevel||[]).length}</p>
             <p className="text-[10px] text-slate-400">等级分类</p>
           </div>
           <div className="bg-white rounded-xl p-3 text-center">
-            <p className="text-lg font-bold text-[#E8A838]">{d.salineByType.length}</p>
+            <p className="text-lg font-bold text-[#E8A838]">{(d.salineByType||[]).length}</p>
             <p className="text-[10px] text-slate-400">土壤类型</p>
           </div>
         </div>
+        {/* 各农场面积 —— 仅全集团显示 */}
+        {!d.isFarmView && (
+          <>
+            <p className="text-[11px] text-slate-400 font-medium mb-2">各农场面积</p>
+            <div className="space-y-2 mb-4">
+              {(d.salineByFarm||[]).map((item: any) => (
+                <div key={item.farm} className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-600 w-16 shrink-0 truncate">{item.farm}</span>
+                  <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${(item.area / d.totalSaline) * 100}%`, backgroundColor: item.color }} />
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-700 w-18 text-right shrink-0">{item.area.toLocaleString()}亩</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         {/* 等级分布 */}
         <p className="text-[11px] text-slate-400 font-medium mb-2">等级分布</p>
         <div className="space-y-2 mb-4">
-          {d.salineByLevel.map((item) => (
+          {(d.salineByLevel||[]).map((item: any) => (
             <div key={item.level} className="flex items-center gap-2">
               <span className="text-[11px] text-slate-600 w-8 shrink-0">{item.level}</span>
               <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
@@ -1793,7 +2066,7 @@ function LandCompanyAnalysis() {
         {/* 类型分布 */}
         <p className="text-[11px] text-slate-400 font-medium mb-2">类型分布</p>
         <div className="space-y-2">
-          {d.salineByType.map((item) => (
+          {(d.salineByType||[]).map((item: any) => (
             <div key={item.type} className="flex items-center gap-2">
               <span className="text-[11px] text-slate-600 w-20 shrink-0 truncate">{item.type}</span>
               <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
@@ -1810,8 +2083,7 @@ function LandCompanyAnalysis() {
 
 /* ═══════════════════════════════ 种植分析 ═══════════════════════════════ */
 
-function CropAnalysis() {
-  const d = mockCropAnalysis;
+function CropAnalysis({ d }: { d: Record<string, any> }) {
   const [progressTab, setProgressTab] = useState(0);
   const [inputTab, setInputTab] = useState(0);
 
@@ -1828,7 +2100,7 @@ function CropAnalysis() {
         <div className="flex items-start gap-4">
           <svg width="120" height="120" viewBox="0 0 120 120">
             {d.cropBreakdown.reduce((els: any[], c, i) => {
-              const pct = c.area / d.planTotal;
+              const pct = c.area / (d.planTotal || 1);
               const dashLen = circum * pct;
               const dashGap = circum - dashLen;
               els.push(<circle key={i} cx={cx} cy={cy} r={donutR} fill="none" stroke={c.color} strokeWidth={donutW}
@@ -1837,11 +2109,11 @@ function CropAnalysis() {
               offset += dashLen;
               return els;
             }, [])}
-            <text x="60" y="56" textAnchor="middle" fill="#1e293b" fontSize="13" fontWeight="700">{d.planTotal}万亩</text>
+            <text x="60" y="56" textAnchor="middle" fill="#1e293b" fontSize="13" fontWeight="700">{d.planTotal || 0}万亩</text>
             <text x="60" y="72" textAnchor="middle" fill="#64748b" fontSize="9">计划总面积</text>
           </svg>
           <div className="flex-1 space-y-2 pt-1">
-            {d.cropBreakdown.map((c) => (
+            {(d.cropBreakdown||[]).map((c: any) => (
               <div key={c.crop} className="flex items-center gap-2 text-[11px]">
                 <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: c.color }} />
                 <span className="text-slate-500 flex-1">{c.crop}</span>
@@ -1861,17 +2133,18 @@ function CropAnalysis() {
       <section className="bg-slate-50 rounded-2xl p-5">
         <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">累计投入（统种）</h4>
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-xl p-3 text-center"><p className="text-lg font-bold text-slate-800">{d.unifiedInput.materials}</p><p className="text-[10px] text-slate-400">农资（万元）</p></div>
-          <div className="bg-white rounded-xl p-3 text-center"><p className="text-lg font-bold text-slate-800">{d.unifiedInput.machinery}</p><p className="text-[10px] text-slate-400">农机（万元）</p></div>
-          <div className="bg-white rounded-xl p-3 text-center"><p className="text-lg font-bold text-slate-800">{d.unifiedInput.other}</p><p className="text-[10px] text-slate-400">其他（万元）</p></div>
+          <div className="bg-white rounded-xl p-3 text-center"><p className="text-lg font-bold text-slate-800">{d.unifiedInput?.materials || 0}</p><p className="text-[10px] text-slate-400">农资（万元）</p></div>
+          <div className="bg-white rounded-xl p-3 text-center"><p className="text-lg font-bold text-slate-800">{d.unifiedInput?.machinery || 0}</p><p className="text-[10px] text-slate-400">农机（万元）</p></div>
+          <div className="bg-white rounded-xl p-3 text-center"><p className="text-lg font-bold text-slate-800">{d.unifiedInput?.other || 0}</p><p className="text-[10px] text-slate-400">其他（万元）</p></div>
         </div>
       </section>
 
-      {/* 3. 各农场承租 / 统种占比 */}
+      {/* 3. 承租 / 统种占比 —— 仅全集团显示 */}
+      {!d.isFarmView && (
       <section className="bg-slate-50 rounded-2xl p-5">
         <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">各农场承租 / 统种占比</h4>
         <div className="space-y-3">
-          {d.farmLeaseRatio.map((f) => (
+          {(d.farmLeaseRatio||[]).map((f: any) => (
             <div key={f.farm}>
               <div className="flex justify-between text-[11px] mb-1">
                 <span className="font-bold text-slate-600">{f.farm}</span>
@@ -1888,70 +2161,176 @@ function CropAnalysis() {
           <span>■ 承租</span><span>■ 统种</span>
         </div>
       </section>
+      )}
 
-      {/* 4. 各农场整体进度 */}
+      {/* 4. 整体进度 */}
       <section className="bg-slate-50 rounded-2xl p-5">
-        <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">各农场整体进度</h4>
-        <div className="flex gap-1 bg-slate-200 rounded-lg p-0.5 mb-3">
-          {d.farmProgress.tabs.map((t, i) => (
-            <button key={t} onClick={() => setProgressTab(i)}
-              className={cn('flex-1 py-1.5 rounded-md text-[11px] font-bold transition-all', progressTab === i ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400')}>{t}</button>
-          ))}
-        </div>
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-[11px] text-slate-500">整体进度</span>
-          <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full" style={{ width: `${d.farmProgress.overall}%` }} />
-          </div>
-          <span className="text-xs font-bold text-emerald-600">{d.farmProgress.overall}%</span>
-        </div>
-        <div className="space-y-2">
-          {d.farmProgress.data.map((f) => (
-            <div key={f.farm}>
-              <p className="text-[10px] font-bold text-slate-500 mb-1">{f.farm}</p>
-              <div className="h-4 rounded-full overflow-hidden flex gap-px">
-                {d.farmProgress.categories.map((cat, ci) => {
-                  const v = (f as any)[cat] as number;
-                  const palette = ['#0D665E', '#2D9F7A', '#E8A838', '#94A3B8', '#CBD5E1'];
-                  return <div key={cat} className="h-full" style={{ width: `${v / 2.5}%`, backgroundColor: palette[ci] }} />;
+        <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">{d.isFarmView ? `${d.farmLabel} · 整体进度` : '各农场整体进度'}</h4>
+        {d.isFarmView ? (
+          /* ─── 单农场：仪表盘 ─── */
+          <div className="flex flex-col items-center">
+            {/* 仪表盘 */}
+            <div className="relative w-[260px] h-[170px] -mt-5">
+              <svg viewBox="0 0 260 170" className="w-full h-full">
+                <defs>
+                  <linearGradient id="gaugeGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#0D665E" />
+                    <stop offset="40%" stopColor="#2D9F7A" />
+                    <stop offset="75%" stopColor="#E8A838" />
+                    <stop offset="100%" stopColor="#DC2626" />
+                  </linearGradient>
+                </defs>
+                {/* 刻度线 */}
+                {Array.from({length: 21}, (_, i) => {
+                  const angle = -180 + (i * 180 / 20); // -180 to 0 degrees (left to right, bottom half)
+                  const rad = angle * Math.PI / 180;
+                  const isMajor = i % 5 === 0;
+                  const innerR = isMajor ? 85 : 92;
+                  const outerR = 104;
+                  const x1 = 130 + innerR * Math.cos(rad);
+                  const y1 = 155 + innerR * Math.sin(rad);
+                  const x2 = 130 + outerR * Math.cos(rad);
+                  const y2 = 155 + outerR * Math.sin(rad);
+                  return (
+                    <g key={i}>
+                      <line x1={x1} y1={y1} x2={x2} y2={y2}
+                        stroke={isMajor ? '#94A3B8' : '#CBD5E1'} strokeWidth={isMajor ? 2 : 1} strokeLinecap="round" />
+                      {isMajor && (
+                        <text x={130 + 70 * Math.cos(rad)} y={155 + 70 * Math.sin(rad) + 4}
+                          textAnchor="middle" fill="#94A3B8" fontSize="9" fontWeight="600">
+                          {i * 5}
+                        </text>
+                      )}
+                    </g>
+                  );
                 })}
-              </div>
+                {/* 底色弧 */}
+                <path d="M 35 155 A 95 95 0 0 1 225 155"
+                  fill="none" stroke="#E2E8F0" strokeWidth="18" strokeLinecap="round" />
+                {/* 进度弧 */}
+                <path d="M 35 155 A 95 95 0 0 1 225 155"
+                  fill="none" stroke="url(#gaugeGrad2)" strokeWidth="18" strokeLinecap="round"
+                  strokeDasharray={`${(d.farmProgress?.overall || 0) * 2.95} 295`} />
+                {/* 中心数值 */}
+                <text x="130" y="130" textAnchor="middle" fill="#1E293B" fontSize="40" fontWeight="800">
+                  {d.farmProgress?.overall || 0}
+                </text>
+                <text x="130" y="148" textAnchor="middle" fill="#64748B" fontSize="13" fontWeight="700">
+                  %
+                </text>
+              </svg>
             </div>
-          ))}
-        </div>
-        <div className="flex gap-3 mt-2 text-[8px] text-slate-400 flex-wrap">
-          {d.farmProgress.categories.map((c, i) => {
-            const palette = ['#0D665E', '#2D9F7A', '#E8A838', '#94A3B8', '#CBD5E1'];
-            return <span key={c}>■ <span style={{ color: palette[i] }}>{c}</span></span>;
-          })}
-        </div>
+            {/* 阶段标签 */}
+            <div className="flex gap-1 bg-slate-200 rounded-lg p-0.5 -mt-3">
+              {(d.farmProgress?.tabs||[]).map((t: string, i: number) => (
+                <button key={t} onClick={() => setProgressTab(i)}
+                  className={cn('px-4 py-1.5 rounded-md text-[11px] font-bold transition-all', progressTab === i ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400')}>{t}</button>
+              ))}
+            </div>
+            {/* 分类明细 */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-4 justify-center">
+              {(d.farmProgress?.categories||[]).map((cat: string, i: number) => {
+                const palette = ['#0D665E', '#2D9F7A', '#E8A838', '#94A3B8', '#CBD5E1'];
+                const vals2 = (d.farmProgress?.data||[])[0] || {};
+                const v2 = (vals2 as any)[cat] || 0;
+                return (
+                  <span key={cat} className="text-[11px]">
+                    <span className="w-2 h-2 rounded-sm inline-block mr-1 align-middle" style={{ backgroundColor: palette[i] }} />
+                    <span className="text-slate-400">{cat}</span>
+                    <span className="text-slate-700 font-bold ml-1">{v2}%</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* ─── 全集团：堆叠条 ─── */
+          <>
+            <div className="flex gap-1 bg-slate-200 rounded-lg p-0.5 mb-3">
+              {(d.farmProgress?.tabs||[]).map((t: string, i: number) => (
+                <button key={t} onClick={() => setProgressTab(i)}
+                  className={cn('flex-1 py-1.5 rounded-md text-[11px] font-bold transition-all', progressTab === i ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400')}>{t}</button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-[11px] text-slate-500">整体进度</span>
+              <div className="flex-1 h-3 bg-white rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full" style={{ width: `${d.farmProgress?.overall || 0}%` }} />
+              </div>
+              <span className="text-xs font-bold text-emerald-600">{d.farmProgress?.overall || 0}%</span>
+            </div>
+            <div className="space-y-2">
+              {(d.farmProgress?.data||[]).map((f: any) => (
+                <div key={f.farm}>
+                  <p className="text-[10px] font-bold text-slate-500 mb-1">{f.farm}</p>
+                  <div className="h-4 rounded-full overflow-hidden flex gap-px">
+                    {(d.farmProgress?.categories||[]).map((cat: string, ci: number) => {
+                      const v = (f as any)[cat] as number;
+                      const palette = ['#0D665E', '#2D9F7A', '#E8A838', '#94A3B8', '#CBD5E1'];
+                      return <div key={cat} className="h-full" style={{ width: `${v / 2.5}%`, backgroundColor: palette[ci] }} />;
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-3 mt-2 text-[8px] text-slate-400 flex-wrap">
+              {(d.farmProgress?.categories||[]).map((c: string, i: number) => {
+                const palette = ['#0D665E', '#2D9F7A', '#E8A838', '#94A3B8', '#CBD5E1'];
+                return <span key={c}>■ <span style={{ color: palette[i] }}>{c}</span></span>;
+              })}
+            </div>
+          </>
+        )}
       </section>
 
-      {/* 5. 各农场累计投入 */}
+      {/* 5. 累计投入 */}
       <section className="bg-slate-50 rounded-2xl p-5">
-        <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">各农场累计投入</h4>
-        <div className="flex gap-1 bg-slate-200 rounded-lg p-0.5 mb-3">
-          {d.farmInput.tabs.map((t, i) => (
-            <button key={t} onClick={() => setInputTab(i)}
-              className={cn('flex-1 py-1.5 rounded-md text-[11px] font-bold transition-all', inputTab === i ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400')}>{t}</button>
-          ))}
-        </div>
-        <div className="space-y-3">
-          {d.farmInput.data.map((f) => (
-            <div key={f.farm}>
-              <div className="flex justify-between text-[11px] mb-1">
-                <span className="text-slate-600">{f.farm}</span><span className="font-bold text-slate-800">{f.pct}%</span>
+        <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">{d.isFarmView ? `${d.farmLabel} · 累计投入` : '各农场累计投入'}</h4>
+        {d.isFarmView ? (
+          /* ─── 单农场：卡片式 ─── */
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: '农资投入', value: d.unifiedInput?.materials || 0, color: '#0D665E', icon: '🧪' },
+              { label: '农机投入', value: d.unifiedInput?.machinery || 0, color: '#2D9F7A', icon: '🚜' },
+              { label: '其他投入', value: d.unifiedInput?.other || 0, color: '#E8A838', icon: '📦' },
+            ].map((item) => (
+              <div key={item.label} className="bg-white rounded-xl p-4 border border-slate-100 text-center hover:shadow-md transition-shadow">
+                <span className="text-2xl mb-2 block">{item.icon}</span>
+                <p className="text-[20px] font-bold text-slate-800">{item.value}<span className="text-xs text-slate-400 ml-0.5">万</span></p>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">{item.label}</p>
+                <div className="mt-3 h-1 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: '100%', backgroundColor: item.color, opacity: 0.6 }} />
+                </div>
               </div>
-              <div className="h-4 bg-white rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#0D665E] to-emerald-400 rounded-full" style={{ width: `${f.pct}%` }} />
-              </div>
+            ))}
+          </div>
+        ) : (
+          /* ─── 全集团：进度条列表 ─── */
+          <>
+            <div className="flex gap-1 bg-slate-200 rounded-lg p-0.5 mb-3">
+              {(d.farmInput?.tabs||[]).map((t: string, i: number) => (
+                <button key={t} onClick={() => setInputTab(i)}
+                  className={cn('flex-1 py-1.5 rounded-md text-[11px] font-bold transition-all', inputTab === i ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400')}>{t}</button>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="flex justify-between mt-2 text-[9px] text-slate-400">
-          {d.farmInput.scale.map((s) => <span key={s}>{s}</span>)}
-          <span>亿元</span>
-        </div>
+            <div className="space-y-3">
+              {(d.farmInput?.data||[]).map((f: any) => (
+                <div key={f.farm}>
+                  <div className="flex justify-between text-[11px] mb-1">
+                    <span className="text-slate-600">{f.farm}</span><span className="font-bold text-slate-800">{f.pct}%</span>
+                  </div>
+                  <div className="h-4 bg-white rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#0D665E] to-emerald-400 rounded-full" style={{ width: `${f.pct}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between mt-2 text-[9px] text-slate-400">
+              {(d.farmInput?.scale||[]).map((s: string) => <span key={s}>{s}</span>)}
+              <span>亿元</span>
+            </div>
+          </>
+        )}
       </section>
 
       {/* 6. 农艺配方 */}
@@ -1965,7 +2344,7 @@ function CropAnalysis() {
               </tr>
             </thead>
             <tbody>
-              {d.recipes.map((r, i) => (
+              {(d.recipes||[]).map((r: any, i: number) => (
                 <tr key={i} className="border-b border-slate-100 text-slate-600">
                   <td className="py-1.5">{r.pesticide}</td><td className="py-1.5">{r.fertilizer}</td><td className="py-1.5">{r.additive}</td><td className="py-1.5">{r.operation}</td><td className="py-1.5 font-medium">{r.crop}</td>
                 </tr>

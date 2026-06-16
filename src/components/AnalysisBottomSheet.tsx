@@ -496,7 +496,7 @@ export function AnalysisBottomSheet({ activeTab }: Props) {
       animate={{ y: offset }}
       transition={{ type: 'spring', damping: 28, stiffness: 320 }}
       initial={{ y: snapToOffset('peek', sheetH) }}
-      className="fixed left-2 right-2 z-40 rounded-t-[28px] overflow-hidden"
+      className="fixed left-2 right-2 z-40 rounded-t-3xl overflow-hidden"
       style={{
         height: sheetH,
         bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))',

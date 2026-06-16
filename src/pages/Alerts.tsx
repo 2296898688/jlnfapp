@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, AlertTriangle, CheckCircle2, Clock, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useUser } from '../App';
+import { useUser } from '../UserContext';
 import { ROLE_TODOS } from '../mockData';
 import type { TodoItem } from '../types';
 
@@ -34,24 +34,22 @@ export default function Alerts() {
   const completed = todos.filter((t) => t.status === 'COMPLETED');
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC] pb-24">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-100 flex items-center gap-3 px-6 py-4 sticky top-0 z-20">
+    <div className="flex flex-col min-h-screen bg-slate-50 pb-20">
+      {/* 浮动返回 + 内容内标题 */}
+      <div className="px-5 pt-5">
         <button
           onClick={() => navigate(-1)}
-          className="p-1 active:bg-slate-50 rounded-lg transition-colors"
+          className="w-9 h-9 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center active:scale-95 transition-transform mb-3"
         >
-          <ArrowLeft size={20} className="text-slate-400" />
+          <ArrowLeft size={18} className="text-slate-500" />
         </button>
-        <div>
-          <h1 className="text-[17px] font-bold text-slate-800">待办告警</h1>
-          <p className="text-[10px] text-slate-400 font-medium">
-            {pending.length} 条待处理 · {completed.length} 条已完成
-          </p>
-        </div>
-      </header>
+        <h1 className="text-xl font-bold text-slate-800 tracking-tight">待办告警</h1>
+        <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+          {pending.length} 条待处理 · {completed.length} 条已完成
+        </p>
+      </div>
 
-      <div className="p-4 space-y-5">
+      <div className="px-5 mt-4 space-y-5">
         {/* 待处理 */}
         {pending.length > 0 && (
           <section>

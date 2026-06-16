@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Filter, X, Plus, PlusCircle, Map as MapIcon, ChevronRight, TrendingUp, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useUser } from '../App';
+import { useUser } from '../UserContext';
 import { mockMapPlots } from '../mockData';
 
 const ORG_OPTIONS = ['白城牧场', '镇南种羊场', '长岭种马场'];
@@ -161,7 +161,7 @@ export function YieldReporting() {
 
       {/* FAB */}
       <div className="fixed bottom-28 right-6 z-40">
-        <button onClick={() => { setForm({ date: new Date().toISOString().split('T')[0], totalYield: '', crop: '玉米', variety: '郑单958' }); setShowForm(true); }} className="w-16 h-16 bg-blue-700 text-white rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-200 active:scale-90 transition-transform"><TrendingUp size={28} /></button>
+        <button onClick={() => { setForm({ date: new Date().toISOString().split('T')[0], totalYield: '', crop: '玉米', variety: '郑单958' }); setShowForm(true); }} className="w-16 h-16 bg-blue-700 text-white rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-200 active:scale-90 transition-transform"><Plus size={28} /></button>
       </div>
 
       {/* Detail Bottom Sheet */}
@@ -206,7 +206,7 @@ export function YieldReporting() {
         {showForm && (
           <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowForm(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" />
-            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="relative w-full max-w-xl bg-white rounded-t-[40px] sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col h-[90vh] sm:h-auto max-h-[90vh]">
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="relative w-full max-w-xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[90vh] sm:h-auto max-h-[90vh]">
               <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
                 <div><h3 className="text-[18px] font-bold text-slate-800">产量上报</h3></div>
                 <button onClick={() => setShowForm(false)} className="p-2 text-slate-400 active:bg-slate-50 rounded-full"><X size={24} /></button>
@@ -292,7 +292,7 @@ export function YieldReporting() {
                       <p className="text-right text-[11px] font-bold text-slate-500">共 {selectedPlots.length} 块 · 合计 {plotTotalArea.toFixed(1)} 亩</p>
                     </div>
                   ) : (
-                    <div className="py-10 border-2 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center text-slate-300"><Plus size={24} className="mb-1" /><p className="text-[11px] font-bold">点击上方选择地块</p></div>
+                    <div className="py-10 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center text-slate-300"><Plus size={24} className="mb-1" /><p className="text-[11px] font-bold">点击上方选择地块</p></div>
                   )}
                 </div>
               </div>
@@ -338,7 +338,7 @@ export function YieldReporting() {
                 })}
               </div>
               <div className="absolute bottom-40 left-1/2 -translate-x-1/2 px-4 py-2 bg-slate-900/80 backdrop-blur rounded-full text-white text-[10px] font-bold flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-400" />{formOrg}</div>
-              <div className="absolute bottom-0 left-0 right-0 max-h-[45%] bg-white rounded-t-[40px] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] flex flex-col">
+              <div className="absolute bottom-0 left-0 right-0 max-h-[45%] bg-white rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] flex flex-col">
                 <div className="w-12 h-1 bg-slate-100 rounded-full mx-auto my-3" />
                 <div className="px-6 flex items-center justify-between">
                   <div><h4 className="text-[14px] font-bold text-slate-800">全部地块列表</h4><span className="text-[10px] text-slate-400 font-bold">范围：{formOrg}</span></div>

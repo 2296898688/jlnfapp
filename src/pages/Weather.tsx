@@ -31,17 +31,14 @@ export default function Weather() {
 
   return (
     <div className="flex flex-col min-h-screen pb-12 bg-slate-50">
-      <header className="bg-emerald-900 text-white px-6 pt-12 pb-6 flex-shrink-0">
-        <button onClick={() => navigate(-1)} className="p-1 -ml-1 mb-2 hover:bg-white/10 rounded-lg">
-          <ArrowLeft size={20} className="text-white/80" />
-        </button>
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">气象监测</h1>
-            <p className="text-xs text-emerald-300/80 mt-1 uppercase tracking-widest font-bold">全域气象实况与预报</p>
-          </div>
-          <button className="p-2 bg-emerald-800/50 rounded-lg border border-emerald-700/50">
-            <Share2 size={16} />
+      <header className="bg-emerald-900 text-white px-5 pt-5 pb-3 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center active:scale-95 transition-transform">
+            <ArrowLeft size={18} className="text-white/80" />
+          </button>
+          <h1 className="text-[17px] font-bold tracking-tight">气象监测</h1>
+          <button className="ml-auto w-8 h-8 rounded-full bg-white/10 flex items-center justify-center active:scale-95 transition-transform">
+            <Share2 size={15} />
           </button>
         </div>
       </header>
@@ -52,7 +49,7 @@ export default function Weather() {
           <div className="p-4 border-b border-slate-50 flex justify-between items-center bg-white/80 backdrop-blur-md absolute top-0 left-0 right-0 z-10">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-[10px] font-bold text-slate-800 uppercase tracking-widest">气象热力图分布</span>
+              <span className="text-[10px] font-bold text-slate-800">气象热力图分布</span>
             </div>
             <div className="flex gap-2">
               {[
@@ -63,7 +60,7 @@ export default function Weather() {
                   key={layer.id}
                   onClick={() => setActiveLayer(layer.id as any)}
                   className={cn(
-                    "px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all border",
+                    "px-3 py-1 rounded-lg text-[11px] font-bold transition-all border",
                     activeLayer === layer.id ? "bg-emerald-900 text-white border-emerald-900" : "bg-slate-50 text-slate-400 border-slate-100"
                   )}
                 >
@@ -99,7 +96,7 @@ export default function Weather() {
            <div className="bg-white border-2 border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between h-28">
               <div className="flex items-center gap-2 text-slate-400">
                 <Thermometer size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-widest">区域均温</span>
+                <span className="text-[10px] font-bold">区域均温</span>
               </div>
               <div className="flex items-end gap-1">
                 <span className="text-2xl font-bold text-slate-800">26.4</span>
@@ -112,7 +109,7 @@ export default function Weather() {
            <div className="bg-white border-2 border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between h-28">
               <div className="flex items-center gap-2 text-slate-400">
                 <Droplets size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-widest">平均湿度</span>
+                <span className="text-[10px] font-bold">平均湿度</span>
               </div>
               <div className="flex items-end gap-1">
                 <span className="text-2xl font-bold text-slate-800">42</span>
@@ -138,7 +135,7 @@ export default function Weather() {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold text-slate-800">{station.name}</h4>
-                  <p className="text-[10px] text-slate-400 font-mono tracking-tighter uppercase">{station.wind} · {station.humidity}</p>
+                  <p className="text-[10px] text-slate-400 font-mono">{station.wind} · {station.humidity}</p>
                 </div>
               </div>
               <span className="text-lg font-bold text-emerald-600">{station.temp}</span>
@@ -151,7 +148,7 @@ export default function Weather() {
            <div className="flex justify-between items-center mb-6">
               <div>
                 <h4 className="text-sm font-bold">气温变化趋势分析</h4>
-                <p className="text-[10px] text-emerald-100/60 mt-1 uppercase font-mono tracking-widest">24小时气温走势</p>
+                <p className="text-[10px] text-emerald-100/60 mt-1 font-mono">24小时气温走势</p>
               </div>
               <div className="bg-emerald-800 p-2 rounded-xl">
                  <Wind size={18} />

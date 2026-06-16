@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { mockPlanting, mockPlantingPlans, mockRecipes, mockMapPlots } from '../mockData';
-import { useUser } from '../App';
+import { useUser } from '../UserContext';
 import { AgronomicRecipe } from '../types';
 import { AgriculturalOperation } from '../components/AgriculturalOperation';
 import { InputMaterialRecording } from '../components/InputMaterialRecording';
@@ -172,14 +172,14 @@ function RemoteSensingReport() {
             { label: '异常地块', val: `${selectedReport.anomalyPlots}块`, sub: '盐碱地需关注', clr: 'text-amber-600', bg: 'bg-amber-50' },
           ].map((c, i) => (
             <div key={i} className={cn('rounded-2xl p-3 border', c.bg, 'border-transparent')}>
-              <div className="text-[9px] font-bold text-slate-400 uppercase mb-1">{c.label}</div>
+              <div className="text-[9px] font-bold text-slate-400 mb-1">{c.label}</div>
               <div className={cn('text-[20px] font-black', c.clr)}>{c.val}</div>
               <div className="text-[9px] font-bold text-slate-400 mt-0.5">{c.sub}</div>
             </div>
           ))}
         </div>
         <div className="bg-slate-50 rounded-2xl p-4">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">NDVI 时序趋势</span>
+          <span className="text-[10px] font-black text-slate-400">NDVI 时序趋势</span>
           <div className="h-[200px] mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={NDVI_TREND}>
@@ -199,7 +199,7 @@ function RemoteSensingReport() {
           </div>
         </div>
         <div>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">地块 NDVI 明细</span>
+          <span className="text-[10px] font-black text-slate-400">地块 NDVI 明细</span>
           <div className="mt-2 space-y-1">
             {selectedReport.plots.map((p, i) => (
               <div key={i} className="flex items-center justify-between px-4 py-3 bg-white rounded-2xl border border-slate-100">
@@ -252,38 +252,41 @@ function RemoteSensingReport() {
         ))}
       </div>
 
-      {/* 双列卡片网格 — 文档封面风格 */}
+      {/* 双列卡片网格 — 渐变封面风格 */}
       <div className="grid grid-cols-2 gap-3 pb-4">
-        {filtered.map((r) => (
-          <button
-            key={r.id}
-            onClick={() => setSelectedReport(r)}
-            className="group relative bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 active:scale-[0.98] transition-transform text-left"
-          >
-            {/* 顶部色条 */}
-            <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-emerald-400" />
-            {/* 封面内容 */}
-            <div className="p-4 pt-3">
-              {/* 标题行 */}
-              <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">遥感监测报告</p>
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[14px] font-black text-slate-800">{r.week}</h4>
-                <span className="text-[10px] text-slate-400 font-medium">{r.dateRange}</span>
+        {filtered.map((r, idx) => {
+          const gradientColors = [
+            'linear-gradient(135deg, #065f46, #047857, #134e4a)',
+            'linear-gradient(135deg, #166534, #0f766e, #064e3b)',
+            'linear-gradient(135deg, #115e59, #15803d, #065f46)',
+            'linear-gradient(135deg, #064e3b, #166534, #0f766e)',
+          ];
+          return (
+            <button
+              key={r.id}
+              onClick={() => setSelectedReport(r)}
+              className="group relative rounded-2xl overflow-hidden shadow-sm border border-slate-100 active:scale-[0.98] transition-transform text-left aspect-[3/4]"
+            >
+              {/* 渐变背景 */}
+              <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500"
+                style={{ background: gradientColors[idx % gradientColors.length] }} />
+              {/* 装饰纹理 */}
+              <div className="absolute inset-0 opacity-[0.06]"
+                style={{ backgroundImage: 'radial-gradient(circle at 30% 40%, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+              {/* 大号水印图标 */}
+              <div className="absolute -bottom-4 -right-4 opacity-[0.08]">
+                <Satellite size={120} className="text-white" />
               </div>
-              {/* 核心指标 */}
-              <div className="bg-slate-50 rounded-xl p-3 text-center mb-2">
-                <div className="text-[30px] font-black text-emerald-600 leading-none">{r.avgNdvi.toFixed(2)}</div>
-                <div className="text-[9px] font-bold text-slate-400 uppercase mt-1">平均 NDVI</div>
+              {/* 顶部光泽 */}
+              <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent" />
+              {/* 底部文字 */}
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <p className="text-[11px] font-bold text-emerald-200/70">遥感监测报告</p>
+                <h4 className="text-[17px] font-bold text-white mt-1 leading-tight">{r.week}</h4>
               </div>
-              {/* 示例标注 */}
-              <p className="text-[8px] text-slate-300 text-center font-medium">此为示例报告 供演示使用</p>
-            </div>
-            {/* 底部角标 */}
-            <div className="absolute bottom-3 right-3 opacity-[0.06]">
-              <Satellite size={32} />
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
       {filtered.length === 0 && (
         <div className="text-center py-16 text-slate-400 text-[13px] font-medium">暂无{season}种植季遥感报告</div>
@@ -330,7 +333,7 @@ function WeatherSpecialReport() {
         <div className="bg-gradient-to-br from-sky-500 to-blue-600 rounded-3xl p-5 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest opacity-60">当前天气</div>
+              <div className="text-[10px] font-black opacity-60">当前天气</div>
               <div className="text-[42px] font-black leading-none mt-1">{selectedReport.temp}°</div>
               <div className="text-[14px] font-bold opacity-80 mt-1">{selectedReport.cond}</div>
             </div>
@@ -348,7 +351,7 @@ function WeatherSpecialReport() {
           </div>
         </div>
         <div className="bg-slate-50 rounded-2xl p-4">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">7日温度与降雨预报</span>
+          <span className="text-[10px] font-black text-slate-400">7日温度与降雨预报</span>
           <div className="h-[220px] mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <ReLineChart data={forecast}>
@@ -368,7 +371,7 @@ function WeatherSpecialReport() {
         <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-1 h-4 bg-amber-400 rounded-full" />
-            <span className="text-[11px] font-black text-amber-700 uppercase tracking-widest">农事建议</span>
+            <span className="text-[11px] font-black text-amber-700">农事建议</span>
           </div>
           <div className="space-y-2 text-[12px] font-bold text-amber-800">
             {selectedReport.advice.map((a, i) => <p key={i}>· {a}</p>)}
@@ -408,44 +411,35 @@ function WeatherSpecialReport() {
         ))}
       </div>
 
-      {/* 双列卡片网格 — 文档封面风格 */}
+      {/* 双列卡片网格 — 渐变封面风格 */}
       <div className="grid grid-cols-2 gap-3 pb-4">
-        {filtered.map((r) => (
-          <button
-            key={r.id}
-            onClick={() => setSelectedReport(r)}
-            className="group relative bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 active:scale-[0.98] transition-transform text-left"
-          >
-            {/* 顶部色条 */}
-            <div className="h-1.5 bg-gradient-to-r from-sky-500 to-blue-500" />
-            {/* 封面内容 */}
-            <div className="p-4 pt-3">
-              {/* 标题行 */}
-              <p className="text-[9px] font-black text-sky-600 uppercase tracking-widest mb-0.5">气象专报</p>
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[14px] font-black text-slate-800">{r.date}</h4>
-                <span className="text-[22px] leading-none">{r.condIcon}</span>
+        {filtered.map((r, idx) => {
+          const gradientColors = [
+            'linear-gradient(135deg, #075985, #1d4ed8, #312e81)',
+            'linear-gradient(135deg, #1e3a8a, #0284c7, #0f172a)',
+            'linear-gradient(135deg, #3730a3, #2563eb, #0c4a6e)',
+            'linear-gradient(135deg, #0f172a, #0369a1, #1e3a8a)',
+          ];
+          return (
+            <button
+              key={r.id}
+              onClick={() => setSelectedReport(r)}
+              className="group relative rounded-2xl overflow-hidden shadow-sm border border-slate-100 active:scale-[0.98] transition-transform text-left aspect-[3/4]"
+            >
+              <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500"
+                style={{ background: gradientColors[idx % gradientColors.length] }} />
+              <div className="absolute inset-0 opacity-[0.06]"
+                style={{ backgroundImage: 'radial-gradient(circle at 30% 40%, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+              <div className="absolute -bottom-4 -right-4 opacity-[0.08]">
+                <Wind size={120} className="text-white" />
               </div>
-              {/* 核心指标 */}
-              <div className="bg-slate-50 rounded-xl p-3 mb-3 text-center">
-                <div className="text-[30px] font-black text-sky-600 leading-none">{r.temp}°</div>
-                <div className="text-[9px] font-bold text-slate-400 uppercase mt-1">{r.cond}</div>
+              <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <p className="text-[11px] font-bold text-sky-200/70">气象专报</p>
               </div>
-              {/* 气象指标 */}
-              <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 mb-2">
-                <span>💧 {r.rainfall}mm</span>
-                <span>💨 {r.windSpeed}级</span>
-                <span>💦 {r.humidity}%</span>
-              </div>
-              {/* 示例标注 */}
-              <p className="text-[8px] text-slate-300 text-center font-medium">此为示例报告 供演示使用</p>
-            </div>
-            {/* 底部水印 */}
-            <div className="absolute bottom-2 right-2 opacity-[0.04]">
-              <Wind size={32} />
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
       {filtered.length === 0 && (
         <div className="text-center py-16 text-slate-400 text-[13px] font-medium">暂无{season}种植季气象专报</div>
@@ -645,7 +639,7 @@ export default function Planting() {
     { id: 'report', label: '作业填报', icon: FileEdit, color: 'bg-emerald-50 text-emerald-600' },
     { id: 'input', label: '作业投入', icon: Package, color: 'bg-emerald-50 text-emerald-600' },
     { id: 'estimate', label: '产量预估', icon: TrendingUp, color: 'bg-blue-50 text-blue-700' },
-    { id: 'yield', label: '产量上报', icon: LineChart, color: 'bg-blue-50 text-blue-700' },
+    { id: 'yield', label: '产量上报', icon: Plus, color: 'bg-blue-50 text-blue-700' },
     ...(user.role === 'GROUP_ADMIN' ? [
       { id: 'personnel', label: '人员档案', icon: UserCircle, color: 'bg-blue-50 text-blue-600' },
     ] : []),
@@ -697,7 +691,7 @@ export default function Planting() {
   const currentTabLabel = currentTabItem?.label;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8FAFC] pb-24">
+    <div className="flex flex-col min-h-screen bg-slate-50 pb-20">
       {/* Header */}
       <header className="bg-white border-b border-slate-100 flex items-center justify-between px-6 py-4 sticky top-0 z-20">
         <div className="flex items-center gap-3">
@@ -739,7 +733,7 @@ export default function Planting() {
             className="p-4 space-y-6"
           >
             {/* Category: Planting Info */}
-            <section className="bg-white rounded-[32px] p-6 border border-slate-200/50 shadow-sm space-y-5">
+            <section className="bg-white rounded-2xl p-6 border border-slate-200/50 shadow-sm space-y-5">
               <div className="flex items-center gap-2 px-1">
                 <div className="w-1 h-3.5 bg-emerald-500 rounded-full" />
                 <h2 className="text-[14px] font-bold text-slate-800">农事作业</h2>
@@ -851,7 +845,7 @@ export default function Planting() {
 
                       {/* List */}
                       {Object.keys(groupedPlans).length > 0 ? (
-                        <div className="space-y-5 pb-24">
+                        <div className="space-y-5 pb-20">
                           <div className="flex items-center px-1">
                             <span className="text-[11px] font-bold text-slate-400">共 {filteredPlans.length} 条</span>
                           </div>
@@ -938,7 +932,7 @@ export default function Planting() {
                       </div>
                     </div>
 
-                    <div className="grid gap-3 pb-24">
+                    <div className="grid gap-3 pb-20">
                         {recipes.filter(r => {
                           if (recipeCropFilter !== '全部' && r.suitableCrop !== recipeCropFilter) return false;
                           if (recipeOpFilter !== '全部' && r.suitableOperation !== recipeOpFilter) return false;
@@ -980,7 +974,7 @@ export default function Planting() {
                                   {recipe.materials.map((m, idx) => (
                                     <div key={idx} className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl">
                                       <div>
-                                        <span className="text-[9px] font-black text-slate-300 uppercase">{m.type || '投入品'}</span>
+                                        <span className="text-[9px] font-black text-slate-300">{m.type || '投入品'}</span>
                                         <p className="text-[13px] font-bold text-slate-700">{m.name}</p>
                                       </div>
                                       <div className="text-right"><span className="text-[9px] text-slate-300 block">亩用量</span><span className="text-[13px] font-mono font-bold text-slate-800">{m.dosage}</span></div>
@@ -1026,7 +1020,7 @@ export default function Planting() {
                     </div>
                     <button 
                       onClick={() => navigate(-1)}
-                      className="px-8 py-3 bg-slate-900 text-white rounded-full text-[11px] font-bold uppercase tracking-widest shadow-lg shadow-slate-200 transition-transform active:scale-95"
+                      className="px-8 py-3 bg-slate-900 text-white rounded-full text-[11px] font-bold shadow-lg shadow-slate-200 transition-transform active:scale-95"
                     >
                       返回主菜单
                     </button>
@@ -1053,7 +1047,7 @@ export default function Planting() {
                   animate={{ y: 0 }}
                   exit={{ y: "100%" }}
                   transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                  className="relative w-full max-w-xl bg-white rounded-t-[40px] sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col h-[85vh] sm:h-auto max-h-[90vh]"
+                  className="relative w-full max-w-xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[85vh] sm:h-auto max-h-[90vh]"
                >
                   <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
                     <div className="flex flex-col">
@@ -1215,7 +1209,7 @@ export default function Planting() {
                             </div>
                           </div>
                         ) : (
-                          <div className="py-10 border-2 border-dashed border-slate-100 rounded-[24px] flex flex-col items-center justify-center text-slate-300">
+                          <div className="py-10 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center text-slate-300">
                             <Plus size={24} className="mb-1" />
                             <p className="text-[11px] font-bold">点击上方选择地块</p>
                           </div>
@@ -1408,7 +1402,7 @@ export default function Planting() {
                </div>
 
                {/* Bottom List */}
-               <div className="absolute bottom-0 left-0 right-0 max-h-[45%] bg-white rounded-t-[40px] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] flex flex-col">
+               <div className="absolute bottom-0 left-0 right-0 max-h-[45%] bg-white rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] flex flex-col">
                   <div className="w-12 h-1 bg-slate-100 rounded-full mx-auto my-3" />
                   <div className="px-6 flex items-center justify-between">
                      <div className="flex flex-col">
@@ -1486,7 +1480,7 @@ export default function Planting() {
                   animate={{ y: 0 }}
                   exit={{ y: "100%" }}
                   transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                  className="relative w-full max-w-xl bg-white rounded-t-[40px] sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col h-[85vh] sm:h-auto max-h-[90vh]"
+                  className="relative w-full max-w-xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[85vh] sm:h-auto max-h-[90vh]"
                >
                   {/* Modal Header */}
                   <div className="p-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
@@ -1564,7 +1558,7 @@ export default function Planting() {
                                     <div className="space-y-3">
                                        {selectedMaterials[section.id].length > 0 ? (
                                           selectedMaterials[section.id].map((m) => (
-                                             <div key={m.id} className="bg-slate-100/30 border border-slate-100 rounded-[28px] p-5 space-y-4 shadow-sm">
+                                             <div key={m.id} className="bg-slate-100/30 border border-slate-100 rounded-xl p-5 space-y-4 shadow-sm">
                                                 <div className="flex items-center justify-between">
                                                    <span className="text-[14px] font-bold text-slate-800">{m.name}</span>
                                                    <button 
@@ -1579,7 +1573,7 @@ export default function Planting() {
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
                                                    <div className="space-y-1.5">
-                                                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest pl-1">亩用量</span>
+                                                      <span className="text-[9px] font-black text-slate-300 pl-1">亩用量</span>
                                                       <input 
                                                          value={m.dosage}
                                                          onChange={(e) => {
@@ -1594,7 +1588,7 @@ export default function Planting() {
                                                       />
                                                    </div>
                                                    <div className="space-y-1.5">
-                                                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest pl-1">预估单价</span>
+                                                      <span className="text-[9px] font-black text-slate-300 pl-1">预估单价</span>
                                                       <input 
                                                          value={m.unitPrice}
                                                          onChange={(e) => {
@@ -1612,11 +1606,11 @@ export default function Planting() {
                                              </div>
                                           ))
                                        ) : (
-                                          <div className="py-8 border-2 border-dashed border-slate-100 rounded-[32px] flex flex-col items-center justify-center text-center space-y-2 bg-slate-50/50 opacity-60">
+                                          <div className="py-8 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center text-center space-y-2 bg-slate-50/50 opacity-60">
                                              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-200">
                                                 <Plus size={20} />
                                              </div>
-                                             <p className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">暂无{section.type}信息</p>
+                                             <p className="text-[10px] font-bold text-slate-300">暂无{section.type}信息</p>
                                           </div>
                                        )}
                                     </div>
@@ -1626,10 +1620,10 @@ export default function Planting() {
                               {/* Water Usage */}
                               <div className="space-y-3 pt-2">
                                  <label className="text-[12px] font-bold text-slate-600 block pl-1">用水量补充 (可选)</label>
-                                 <div className="p-5 bg-slate-100/30 border border-slate-100 rounded-[28px] space-y-4 shadow-inner">
+                                 <div className="p-5 bg-slate-100/30 border border-slate-100 rounded-xl space-y-4 shadow-inner">
                                     <div className="grid grid-cols-2 gap-4">
                                        <div className="space-y-1.5">
-                                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest pl-1">亩用量</span>
+                                          <span className="text-[9px] font-black text-slate-300 pl-1">亩用量</span>
                                           <input 
                                              value={waterUsage.dosage}
                                              onChange={(e) => setWaterUsage(prev => ({ ...prev, dosage: e.target.value }))}
@@ -1638,7 +1632,7 @@ export default function Planting() {
                                           />
                                        </div>
                                        <div className="space-y-1.5">
-                                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest pl-1">单价</span>
+                                          <span className="text-[9px] font-black text-slate-300 pl-1">单价</span>
                                           <input 
                                              value={waterUsage.unitPrice}
                                              onChange={(e) => setWaterUsage(prev => ({ ...prev, unitPrice: e.target.value }))}
@@ -1655,7 +1649,7 @@ export default function Planting() {
                                  <label className="text-[12px] font-bold text-slate-600 block pl-1">配方备注信息</label>
                                  <textarea 
                                     rows={4}
-                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-[28px] text-[14px] text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/10 placeholder-slate-300 resize-none shadow-inner"
+                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-xl text-[14px] text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/10 placeholder-slate-300 resize-none shadow-inner"
                                     placeholder="请输入施用注意事项、建议环境等..."
                                  />
                               </div>
@@ -1698,7 +1692,7 @@ export default function Planting() {
                                              setSelectingMaterialType(null);
                                           }}
                                           className={cn(
-                                             "flex items-center justify-between p-5 rounded-[28px] border transition-all active:scale-[0.98]",
+                                             "flex items-center justify-between p-5 rounded-xl border transition-all active:scale-[0.98]",
                                              isSelected ? "bg-blue-50 border-blue-200" : "bg-white border-slate-100 hover:border-slate-200"
                                           )}
                                        >
@@ -1780,7 +1774,7 @@ export default function Planting() {
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">选择作物</label>
+                  <label className="text-[10px] font-black text-slate-300 pl-1">选择作物</label>
                   <div className="flex flex-wrap gap-2">
                     {['全部作物', ...CROP_OPTIONS].map((item) => (
                       <button
@@ -1800,7 +1794,7 @@ export default function Planting() {
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">组织架构</label>
+                  <label className="text-[10px] font-black text-slate-300 pl-1">组织架构</label>
                   <div className="space-y-2">
                     {(user.orgFilter ? [user.orgFilter] : ['全部农场', ...ORG_OPTIONS]).map((item) => (
                       <button
@@ -1851,7 +1845,7 @@ export default function Planting() {
               </div>
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">选择作物</label>
+                  <label className="text-[10px] font-black text-slate-300 pl-1">选择作物</label>
                   <div className="grid grid-cols-2 gap-2">
                     {['全部', ...CROP_OPTIONS].map(c => (
                       <button key={c} onClick={() => setRecipeCropFilter(c)}
@@ -1860,7 +1854,7 @@ export default function Planting() {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest pl-1">适用作业</label>
+                  <label className="text-[10px] font-black text-slate-300 pl-1">适用作业</label>
                   <div className="grid grid-cols-2 gap-2">
                     {['全部', '播种', '施肥', '田间管理', '植保'].map(o => (
                       <button key={o} onClick={() => setRecipeOpFilter(o)}
